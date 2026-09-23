@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mercy Corps
+#
+# Portal profile: ArcGIS Enterprise (AGE) — the future deployment target.
+#
+# This file exists to prove the seam: everything cartographic, temporal and
+# field-level is inherited from the AGOL profile, so the migration is portal +
+# auth + service URLs and nothing else.
+#
+# Activate with:  MC_PORTAL_PROFILE=enterprise
+
+extends: portal.agol.yaml
+
+profile: enterprise
+label: "Mercy Corps ArcGIS Enterprise"
+
+portal:
+  # e.g. https://gis.mercycorps.org/portal
+  url: "TODO: Enterprise portal URL"
+  sharing_rest: null
+  org_id: null
+
+auth:
+  # Enterprise typically fronts services with web-tier auth (IWA/PKI/SAML),
+  # in which case the browser supplies credentials and the build embeds nothing.
+  mode: web_tier
+  api_key_env: MC_AGE_API_KEY
+  username_env: MC_AGE_USERNAME
+  password_env: MC_AGE_PASSWORD
+  embed_key_in_build: false
+
+# Only the endpoints move. Roles, field names, breaks, time model and map frame
+# are inherited from portal.agol.yaml — do not restate them here.
+layers:
+  health_zones:
+    item_id: "TODO: portal item id"
+    service_url: "TODO: https://<server>/server/rest/services/<name>/FeatureServer"
+  provinces:
+    item_id: "TODO: portal item id"
+    service_url: "TODO: .../FeatureServer"
+  cases:
+    item_id: "TODO: portal item id"
+    service_url: "TODO: .../FeatureServer"
+  corridors:
+    item_id: "TODO: portal item id"
+    service_url: "TODO: .../FeatureServer"
+  epicentre:
+    item_id: "TODO: portal item id"
+    service_url: "TODO: .../FeatureServer"

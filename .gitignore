@@ -1,0 +1,66 @@
+# --- Secrets ---------------------------------------------------------------
+# Portal profiles in config/ are TRACKED on purpose: they carry only env var
+# NAMES (e.g. api_key_env: MC_AGOL_API_KEY), never values, and the loader in
+# Scripts/common/portal_config.py cannot run without them. Real keys and any
+# internal endpoint values live in .env or in MC_* env overrides — see the
+# module docstring — and never in the repo.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- Node (esri-leaflet / Leaflet-PolylineDecorator vendoring) -------------
+node_modules/
+npm-debug.log*
+package-lock.json.bak
+
+# --- Build output ----------------------------------------------------------
+# Self-contained pages run ~19 MB each. Jekyll already excludes output/ from
+# publish; keep it out of history too.
+output/
+_site/
+.jekyll-cache/
+
+# --- Large / derived geodata ----------------------------------------------
+# MC canonical geometry and corridors are published to AGOL, not versioned
+# here. Drop the ignore (or use Git LFS) if a file must travel with the repo.
+*.gpkg
+*.gpkg-shm
+*.gpkg-wal
+*.gdb/
+*.shp
+*.shx
+*.dbf
+*.sbn
+*.sbx
+*.prj
+*.cpg
+*.tif
+*.tiff
+# Upstream build artifacts live in the sibling BDBV2026-Data repo.
+BDBV2026-Data/
+
+# --- OS / editor -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/
+.idea/
+
+# --- Local tooling ---------------------------------------------------------
+# Per-developer assistant/editor config is excluded locally via
+# .git/info/exclude rather than here, so it stays a personal choice.

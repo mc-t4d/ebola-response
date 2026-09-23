@@ -1,0 +1,352 @@
+/*
+ * Mercy Corps — DRC Ebola Web Dashboard theme
+ *
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2026 INRB / INOHA / INSP  (upstream: INRB-UMIE/BDBV2026-Epidemic_Dashboard)
+ * Copyright (c) 2026 Mercy Corps         (modifications and new work)
+ *
+ * Loaded by common/theme.py -> load_theme_css() and layered over the Leaflet
+ * map. This is the ONLY place MC visual identity is defined.
+ *
+ * Token contract: the choropleth ramp (--mc-case-1..5), the null/water
+ * neutrals and the program-overlay outlines are mirrored in
+ * config/portal.agol.yaml under `cartography`. The YAML is what the Leaflet
+ * style function reads at build time; these custom properties are what static
+ * CSS (legend swatches, chart series, print) reads. Change both together.
+ *
+ * TODO (PROJECT_BRIEF §4): replace the ramp placeholders with the exact hexes
+ * from the ArcGIS Pro .stylx / CIM, and confirm --mc-red against the current
+ * Mercy Corps brand guide.
+ */
+
+/* Merriweather (serif body) + League Spartan (display). Self-contained pages
+ * fetch these at view time; a packaged/offline build should swap this @import
+ * for locally vendored @font-face rules. */
+@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
+
+:root {
+  /* ---- Brand ------------------------------------------------------- */
+  --mc-red: #DA291C;              /* titles, active state, key accents */
+  --mc-red-dark: #A81B12;
+  --mc-red-tint: #FBE9E7;
+  --mc-ink: #1F1F1F;              /* body text */
+  --mc-ink-muted: #5C5C5C;        /* captions, source line */
+  --mc-paper: #FFFFFF;
+  --mc-paper-alt: #F6F4F1;        /* panel / card background */
+  --mc-rule: #D8D4CF;             /* hairlines, table borders */
+
+  /* ---- Typography -------------------------------------------------- */
+  --mc-font-display: "League Spartan", "Trebuchet MS", sans-serif;
+  --mc-font-serif: "Merriweather", Georgia, "Times New Roman", serif;
+  --mc-font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+  --mc-text-base: 15px;
+  --mc-text-sm: 13px;
+  --mc-text-xs: 11.5px;
+  --mc-leading: 1.55;
+
+  /* ---- Case-count ramp: MC 5-class YlOrRd --------------------------- */
+  /* Breaks 1–4 / 5–10 / 11–21 / 22–44 / 45+  (web top class is open-ended;
+   * the daily static map may print the true max, e.g. 45–1654). */
+  --mc-case-1: #FDD835;   /*  1–4   */
+  --mc-case-2: #FDAE61;   /*  5–10  */
+  --mc-case-3: #F16913;   /* 11–21  */
+  --mc-case-4: #D7301F;   /* 22–44  */
+  --mc-case-5: #B10026;   /* 45+    */
+
+  /* ---- Neutrals / non-data ----------------------------------------- */
+  /* Unaffected zones carry NULL, not 0 — "no cases yet" must never read as a
+   * confirmed zero, so the two get different fills. */
+  --mc-unaffected: #E3E0DC;       /* NULL — light grey */
+  --mc-zero: #FFFFFF;             /* a reported 0 */
+  --mc-water: #CFE3EC;            /* pale blue */
+  --mc-zone-outline: #FFFFFF;
+  --mc-province-outline: #4A4A4A;
+
+  /* ---- Program overlays (outlines only, never fills) ---------------- */
+  --mc-reset-outline: #2E7D32;    /* RESET — green */
+  --mc-ierdc-outline: #00A6CE;    /* IERDC — cyan */
+
+  /* ---- Corridors + epicentre (Transmission tab) --------------------- */
+  --mc-corridor-1: #7B3294;
+  --mc-corridor-2: #008837;
+  --mc-corridor-3: #0571B0;
+  --mc-corridor-4: #CA0020;
+  --mc-corridor-5: #E66101;
+  --mc-corridor-6: #5E3C99;
+  --mc-corridor-width: 3px;
+  --mc-corridor-dash: 8 6;        /* cross-border / transit; roads stay solid */
+  --mc-epicentre: #000000;        /* black asterisk marker */
+  --mc-epicentre-halo: #FFFFFF;
+
+  /* ---- Layout ------------------------------------------------------- */
+  --mc-radius: 3px;
+  --mc-gap: 12px;
+  --mc-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  --mc-panel-bg: rgba(255, 255, 255, 0.94);
+}
+
+/* ---------------------------------------------------------------------
+ * Base typography
+ * ------------------------------------------------------------------ */
+body,
+.leaflet-container {
+  font-family: var(--mc-font-serif);
+  font-size: var(--mc-text-base);
+  line-height: var(--mc-leading);
+  color: var(--mc-ink);
+  background: var(--mc-paper);
+}
+
+h1, h2, h3, h4,
+.mc-title,
+.mc-tab,
+.mc-legend-title {
+  font-family: var(--mc-font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.4em;
+}
+
+h1, .mc-title { color: var(--mc-red); font-size: 1.55rem; }
+h2 { color: var(--mc-red); font-size: 1.2rem; }
+h3 { color: var(--mc-ink); font-size: 1.02rem; }
+
+/* Italic serif source line, per house style. */
+.mc-source,
+.mc-caption {
+  font-family: var(--mc-font-serif);
+  font-style: italic;
+  font-size: var(--mc-text-xs);
+  color: var(--mc-ink-muted);
+}
+
+/* ---------------------------------------------------------------------
+ * Tabs (Current Snapshot · Epidemiological Trends · Transmission)
+ * ------------------------------------------------------------------ */
+.mc-tabs {
+  display: flex;
+  gap: var(--mc-gap);
+  border-bottom: 2px solid var(--mc-rule);
+}
+
+.mc-tab {
+  padding: 8px 14px;
+  font-size: var(--mc-text-sm);
+  text-transform: uppercase;
+  color: var(--mc-ink-muted);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.mc-tab:hover { color: var(--mc-ink); }
+
+.mc-tab[aria-selected="true"] {
+  color: var(--mc-red);
+  border-bottom-color: var(--mc-red);
+}
+
+/* ---------------------------------------------------------------------
+ * Choropleth bins — mirrors cartography.case_choropleth in the portal profile
+ * ------------------------------------------------------------------ */
+.mc-bin-1 { --mc-bin: var(--mc-case-1); }
+.mc-bin-2 { --mc-bin: var(--mc-case-2); }
+.mc-bin-3 { --mc-bin: var(--mc-case-3); }
+.mc-bin-4 { --mc-bin: var(--mc-case-4); }
+.mc-bin-5 { --mc-bin: var(--mc-case-5); }
+.mc-bin-null { --mc-bin: var(--mc-unaffected); }
+.mc-bin-zero { --mc-bin: var(--mc-zero); }
+
+/* Leaflet draws vector paths as SVG; fill/stroke are set by the style function
+ * from the YAML, but the class keeps the swatch and the path in step. */
+.mc-zone {
+  fill: var(--mc-bin, var(--mc-unaffected));
+  fill-opacity: 0.85;
+  stroke: var(--mc-zone-outline);
+  stroke-width: 0.5;
+}
+
+.mc-zone:hover { fill-opacity: 1; stroke-width: 1.25; }
+
+.mc-province {
+  fill: none;
+  stroke: var(--mc-province-outline);
+  stroke-width: 1.2;
+}
+
+.mc-water { fill: var(--mc-water); stroke: none; }
+
+/* ---------------------------------------------------------------------
+ * Program overlays — outlines, no fill, so the choropleth reads through
+ * ------------------------------------------------------------------ */
+.mc-overlay-reset {
+  fill: none;
+  stroke: var(--mc-reset-outline);
+  stroke-width: 2;
+}
+
+.mc-overlay-ierdc {
+  fill: none;
+  stroke: var(--mc-ierdc-outline);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+/* ---------------------------------------------------------------------
+ * Corridors + epicentre
+ * ------------------------------------------------------------------ */
+.mc-corridor {
+  fill: none;
+  stroke-width: var(--mc-corridor-width);
+  stroke-linecap: round;
+}
+
+/* Dashed = cross-border / transit routes. Solid = national roads (RN4, RN25). */
+.mc-corridor--dashed { stroke-dasharray: var(--mc-corridor-dash); }
+.mc-corridor--solid { stroke-dasharray: none; }
+
+.mc-corridor-1 { stroke: var(--mc-corridor-1); }
+.mc-corridor-2 { stroke: var(--mc-corridor-2); }
+.mc-corridor-3 { stroke: var(--mc-corridor-3); }
+.mc-corridor-4 { stroke: var(--mc-corridor-4); }
+.mc-corridor-5 { stroke: var(--mc-corridor-5); }
+.mc-corridor-6 { stroke: var(--mc-corridor-6); }
+
+/* Arrowheads come from Leaflet-PolylineDecorator; colour them with the line. */
+.mc-corridor-arrow { fill: none; stroke-width: 2; }
+
+.mc-epicentre {
+  font-family: var(--mc-font-display);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--mc-epicentre);
+  text-shadow:
+     1px  1px 0 var(--mc-epicentre-halo),
+    -1px  1px 0 var(--mc-epicentre-halo),
+     1px -1px 0 var(--mc-epicentre-halo),
+    -1px -1px 0 var(--mc-epicentre-halo);
+}
+
+/* ---------------------------------------------------------------------
+ * Legend
+ * ------------------------------------------------------------------ */
+.mc-legend {
+  font-family: var(--mc-font-serif);
+  font-size: var(--mc-text-xs);
+  background: var(--mc-panel-bg);
+  border: 1px solid var(--mc-rule);
+  border-radius: var(--mc-radius);
+  box-shadow: var(--mc-shadow);
+  padding: 8px 10px;
+}
+
+.mc-legend-title {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-ink);
+  margin-bottom: 6px;
+}
+
+.mc-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.mc-legend-swatch {
+  width: 16px;
+  height: 12px;
+  flex: 0 0 auto;
+  background: var(--mc-bin, var(--mc-unaffected));
+  border: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+/* "No cases reported" sits apart from the ramp, above the source line. */
+.mc-legend-null { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--mc-rule); }
+
+.mc-legend-line {
+  width: 18px;
+  height: 0;
+  flex: 0 0 auto;
+  border-top: 3px solid currentColor;
+}
+
+.mc-legend-line--dashed { border-top-style: dashed; }
+
+/* ---------------------------------------------------------------------
+ * Time slider (Transmission tab — the only time-enabled layer)
+ * ------------------------------------------------------------------ */
+.mc-timeslider {
+  font-family: var(--mc-font-display);
+  font-size: var(--mc-text-sm);
+  background: var(--mc-panel-bg);
+  border: 1px solid var(--mc-rule);
+  border-radius: var(--mc-radius);
+  box-shadow: var(--mc-shadow);
+  padding: 8px 12px;
+}
+
+.mc-timeslider input[type="range"] { accent-color: var(--mc-red); width: 100%; }
+.mc-timeslider-label { color: var(--mc-ink); font-weight: 600; }
+/* Marks a step standing in for a gap in the series (e.g. day 84 -> Aug 4). */
+.mc-timeslider-gap { color: var(--mc-ink-muted); font-style: italic; }
+
+/* ---------------------------------------------------------------------
+ * Leaflet chrome
+ * ------------------------------------------------------------------ */
+.leaflet-popup-content-wrapper,
+.leaflet-control-layers,
+.leaflet-bar {
+  border-radius: var(--mc-radius);
+  box-shadow: var(--mc-shadow);
+}
+
+.leaflet-popup-content {
+  font-family: var(--mc-font-serif);
+  font-size: var(--mc-text-sm);
+  margin: 10px 12px;
+}
+
+.leaflet-popup-content .mc-popup-title {
+  font-family: var(--mc-font-display);
+  font-weight: 700;
+  color: var(--mc-red);
+}
+
+.leaflet-control-attribution {
+  font-family: var(--mc-font-serif);
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.leaflet-container a { color: var(--mc-red-dark); }
+
+/* ---------------------------------------------------------------------
+ * Language switch (en/fr — both locales are first-class)
+ * ------------------------------------------------------------------ */
+.mc-lang-switch {
+  font-family: var(--mc-font-display);
+  font-size: var(--mc-text-xs);
+  text-transform: uppercase;
+}
+
+.mc-lang-switch [aria-current="true"] { color: var(--mc-red); font-weight: 700; }
+
+/* ---------------------------------------------------------------------
+ * Print — the web page and the daily static map should read as one family
+ * ------------------------------------------------------------------ */
+@media print {
+  .mc-tabs,
+  .mc-timeslider,
+  .leaflet-control-zoom,
+  .mc-lang-switch { display: none !important; }
+
+  body { background: var(--mc-paper); }
+  .mc-legend { box-shadow: none; }
+}
+
+/* Respect a reader's reduced-motion preference for slider playback. */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

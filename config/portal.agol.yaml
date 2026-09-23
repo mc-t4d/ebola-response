@@ -1,0 +1,257 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mercy Corps
+#
+# Portal profile: ArcGIS Online (AGOL) — the current deployment target.
+#
+# THIS FILE IS THE AGOL<->AGE SEAM. Migrating to ArcGIS Enterprise means
+# pointing MC_PORTAL_PROFILE at portal.enterprise.yaml and filling in the same
+# keys with Enterprise values. No Python or JS changes.
+#
+# Rules:
+#   * NEVER put a token, API key, or password in this file. Auth carries the
+#     NAME of an environment variable; the value is read at build time.
+#   * Anything still unknown is left as a "TODO:" string. portal_config.validate()
+#     reports every TODO so a half-configured build fails loudly.
+#   * Field names are MC's AGOL schema, NOT upstream's. Upstream case data is
+#     joined onto MC geometry on province-disambiguated `nom` via NAME_CROSSWALK
+#     (see docs/PROJECT_BRIEF.md §2) — never on `zscode`, which is not unique.
+
+profile: agol
+label: "Mercy Corps ArcGIS Online"
+
+portal:
+  # e.g. https://mercycorps.maps.arcgis.com
+  url: "TODO: AGOL org portal URL"
+  # REST endpoint; derived from `url` when left null.
+  sharing_rest: null
+  org_id: "TODO: AGOL org short id"
+
+auth:
+  # anonymous | api_key | named_user | web_tier
+  #   anonymous  — layers shared publicly (preferred for a static dashboard)
+  #   api_key    — AGOL API key scoped to read-only on these items
+  #   named_user — build-time token via username/password (CI secrets)
+  #   web_tier   — Enterprise IWA/PKI; browser supplies credentials
+  mode: anonymous
+  # Env var names, not values.
+  api_key_env: MC_AGOL_API_KEY
+  username_env: MC_AGOL_USERNAME
+  password_env: MC_AGOL_PASSWORD
+  # Bake the key into the generated HTML? Default false: these pages are
+  # self-contained files served from GitHub Pages, so an embedded key is public.
+  # Only flip this for a key that is read-only AND referrer-locked.
+  embed_key_in_build: false
+
+# ---------------------------------------------------------------------------
+# Feature layers
+# ---------------------------------------------------------------------------
+# `service_url` is what esri-leaflet consumes and is authoritative. `item_id`
+# is recorded for provenance//sharing lookups. `fields` maps the ROLE the code
+# needs to the ACTUAL column name in the published layer — rename a field in
+# AGOL, edit it here, done.
+layers:
+
+  health_zones:
+    title: "DRC health zones (MC canonical)"
+    # Source: zones_de_sante_update_2.gpkg — 519 zones, EPSG:3857, field `Nom`.
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polygon
+    fields:
+      name: "Nom"          # zone name, MC spelling (Mongbalu / Nyakunde)
+      province: "Province"
+      zscode: "zscode"     # provenance only — NOT a join key
+      join_key: "nom_join" # province-disambiguated name; the actual join key
+    simplify_factor: 0.35
+    precision: 6
+
+  provinces:
+    title: "DRC provinces (dissolved from MC health zones)"
+    # Mirror upstream build_province_boundaries() on the MC gpkg so provinces
+    # nest perfectly with the zones. Rendered on top for clarity (stack pos 4).
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polygon
+    fields:
+      name: "Province"
+
+  cases:
+    title: "Confirmed cases by health zone (time-enabled)"
+    # The ONLY time-varying layer. May be a join view over health_zones; see
+    # PROJECT_BRIEF §4 — validate server-side time filtering before relying on
+    # `time.server_side`.
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polygon
+    fields:
+      join_key: "nom_join"
+      value: "cases_confirmed"
+      date: "report_date"
+      cumulative: "cases_cumulative"
+
+  corridors:
+    title: "Transmission corridors"
+    # Source: DRC_Ebola_Corridors.gpkg. Static styled lines; does NOT vary with
+    # the time slider. `category` drives the categorical palette, `kind` drives
+    # dashed (cross-border/transit) vs solid (national roads RN4, RN25).
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polyline
+    fields:
+      name: "corridor_name"
+      category: "corridor_id"
+      kind: "route_type"   # expected values: cross_border | transit | national_road
+
+  epicentre:
+    title: "Outbreak epicentre"
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: point
+    fields:
+      name: "label"
+
+  # Program overlays — rendered as colored OUTLINES, never fills.
+  reset:
+    title: "RESET program area"
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polygon
+    enabled: false
+    fields:
+      name: "Nom"
+
+  ierdc:
+    title: "IERDC program area"
+    item_id: "TODO: item id"
+    service_url: "TODO: .../FeatureServer"
+    layer_id: 0
+    geometry_type: polygon
+    enabled: false
+    fields:
+      name: "Nom"
+
+  # Deferred (PROJECT_BRIEF §3): cohort-aggregate, not pairwise OD. Toggle hook
+  # only — keep `enabled: false` until the data supports what it would imply.
+  flowminder_short_trips:
+    title: "Flowminder short trips (destination intensity)"
+    item_id: null
+    service_url: null
+    layer_id: 0
+    geometry_type: polygon
+    enabled: false
+    fields:
+      join_key: "nom_join"
+      value: "flowminder_short_trips"
+
+# ---------------------------------------------------------------------------
+# Cartography — house style. Single source of truth for class breaks.
+# ---------------------------------------------------------------------------
+# Hexes mirror Data/Branding/dashboard-theme.css (--mc-case-1..5). Keep the two
+# in sync; the CSS is for static rules, this block is what the Leaflet style
+# function reads. TODO: replace placeholders with exact values from the Pro
+# .stylx / CIM (PROJECT_BRIEF §4).
+cartography:
+  case_choropleth:
+    # 5-class YlOrRd. Web uses an open-ended top class; the daily static map
+    # may print the true max (e.g. 45-1654).
+    scale: threshold          # explicit breaks, not the INSP log scale
+    breaks:
+      - {min: 1,  max: 4,    color: "#FDD835", label_en: "1–4",  label_fr: "1–4"}
+      - {min: 5,  max: 10,   color: "#FDAE61", label_en: "5–10", label_fr: "5–10"}
+      - {min: 11, max: 21,   color: "#F16913", label_en: "11–21", label_fr: "11–21"}
+      - {min: 22, max: 44,   color: "#D7301F", label_en: "22–44", label_fr: "22–44"}
+      - {min: 45, max: null, color: "#B10026", label_en: "45+",  label_fr: "45+"}
+    # Zones with no cases yet are NULL, not 0 — "not reached" must stay visually
+    # distinct from a confirmed zero.
+    null_color: "#E3E0DC"
+    null_label_en: "No cases reported"
+    null_label_fr: "Aucun cas signalé"
+    zero_color: "#FFFFFF"
+    outline: "#FFFFFF"
+    outline_width: 0.5
+    opacity: 0.85
+
+  corridors:
+    # Categorical per corridor; dash pattern by route kind.
+    palette:
+      - "#7B3294"
+      - "#008837"
+      - "#0571B0"
+      - "#CA0020"
+      - "#E66101"
+      - "#5E3C99"
+    width: 3
+    dash:
+      cross_border: "8 6"
+      transit: "8 6"
+      national_road: null      # solid — RN4, RN25
+    # Leaflet-PolylineDecorator (MIT): arrowheads, which Leaflet polylines lack.
+    decorator:
+      enabled: true
+      pattern_offset: "8%"
+      pattern_repeat: "18%"
+      arrow_pixel_size: 12
+      arrow_polygon: false
+
+  epicentre:
+    # Black asterisk marker.
+    symbol: asterisk
+    color: "#000000"
+    size: 16
+    halo: "#FFFFFF"
+    halo_width: 2
+
+  program_overlays:
+    # Outlines only — no fill, so the case choropleth reads through.
+    reset:  {color: "#2E7D32", width: 2, fill: false, dash: null}
+    ierdc:  {color: "#00A6CE", width: 2, fill: false, dash: "6 4"}
+
+  province_boundaries:
+    color: "#4A4A4A"
+    width: 1.2
+    fill: false
+
+# ---------------------------------------------------------------------------
+# Time model (Transmission tab)
+# ---------------------------------------------------------------------------
+time:
+  layer: cases
+  field: report_date
+  default_step: 21            # days; matches the MC small-multiples series
+  step_options: [7, 21]
+  # Day 0/21/42/63/84/105/121. Day 84 has a known data gap -> nearest usable
+  # observation is 2026-08-04 (day 82).
+  anchor_day_offsets: [0, 21, 42, 63, 84, 105, 121]
+  known_gaps:
+    - {day_offset: 84, substitute_date: "2026-08-04", substitute_day_offset: 82}
+  # Flip to true ONLY after test_joinview_timeslider.py confirms the join view
+  # honours a server-side time filter. False = client-side filtering, which is
+  # fine at 519 zones x weekly bins.
+  server_side: false
+
+# ---------------------------------------------------------------------------
+# Map frame
+# ---------------------------------------------------------------------------
+map:
+  basemap:
+    # Stock CARTO Positron, as upstream. A custom MC basemap is a later item.
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    max_zoom: 19
+    subdomains: "abcd"
+  # DRC east + the Uganda / South Sudan adjacency ring.
+  initial_bounds: [[-3.6, 26.8], [4.6, 32.2]]
+  min_zoom: 5
+  max_zoom: 12
+  # Layer stack, bottom -> top (PROJECT_BRIEF §3). The MC salmon roads overlay
+  # is deliberately absent from the first build. Any enabled layer missing from
+  # this list is appended on top, so keep it complete.
+  # health_zones sits underneath as the full 519-zone base; if `cases` is a
+  # join view carrying all zones (unaffected = NULL grey), set it disabled.
+  layer_order: [health_zones, cases, reset, ierdc, provinces, corridors, epicentre]
