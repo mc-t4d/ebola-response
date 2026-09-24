@@ -33,7 +33,7 @@ auth:
   #   web_tier   — Enterprise IWA/PKI; browser supplies credentials
   mode: anonymous
   # Env var names, not values.
-  api_key_env: PG_AGOL_API_KEY
+  api_key_env: MC_AGOL_API_KEY
   username_env: MC_AGOL_USERNAME
   password_env: MC_AGOL_PASSWORD
   # Bake the key into the generated HTML? Default false: these pages are
