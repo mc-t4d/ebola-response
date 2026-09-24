@@ -116,10 +116,27 @@ def _inject_carto_key(engine_js: str) -> str:
     return engine_js.replace(CARTO_KEY_PLACEHOLDER, key)
 
 
+# CSS requires @import to precede every other rule in a stylesheet. The theme
+# layer is concatenated AFTER dashboard.css, so an @import written in the theme
+# file lands mid-sheet and is silently dropped -- the rule never errors, the
+# fonts just never load. Hoist them to the top of the combined sheet so the
+# brand layer can pull its webfonts from the one file it owns.
+_CSS_IMPORT = re.compile(r"^[ \t]*@import[^;]+;[ \t]*\n?", re.MULTILINE)
+
+
 def _write_shared_assets(assets_dir) -> tuple[int, int]:
     base_css = (SCRIPT_DIR / "assets" / "dashboard.css").read_text(encoding="utf-8")
     theme_css = load_theme_css()
-    css = base_css if not theme_css else f"{base_css}\n\n/* --- theme overrides --- */\n{theme_css}\n"
+    if not theme_css:
+        css = base_css
+    else:
+        imports = "".join(
+            m if m.endswith("\n") else m + "\n" for m in _CSS_IMPORT.findall(theme_css)
+        )
+        theme_body = _CSS_IMPORT.sub("", theme_css)
+        css = (
+            f"{imports}{base_css}\n\n/* --- theme overrides --- */\n{theme_body}\n"
+        )
     (assets_dir / "dashboard.css").write_text(css, encoding="utf-8")
 
     engine_js = _inject_carto_key(
