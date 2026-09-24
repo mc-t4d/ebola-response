@@ -1,0 +1,109 @@
+# Layer configuration for the dashboard build.
+# The build script reads this file to control which GeoJSON properties
+# become map layers and how they are displayed.
+
+# ---------------------------------------------------------------------------
+# Exclusions
+# ---------------------------------------------------------------------------
+# Exclude by flat field name (group__metric__leaf), metric (group__metric),
+# or entire group key.  Any discovered layer matching an entry is dropped.
+exclude:
+  - refugee_sites
+  - cross_border
+  - insp_sitrep
+  - epi
+  - gdp_pc
+  - epi_mve_inrb_app
+  - aggregated_insp_linelist
+  - genomic_surveillance
+  # - healthsites_io                  # entire group
+  # - cross_border__poe_passengers__n_poes   # single leaf
+
+# ---------------------------------------------------------------------------
+# Group configuration
+# ---------------------------------------------------------------------------
+# Keys are the top-level GeoJSON property names.  Unlisted groups get a
+# title-cased version of the key with underscores replaced by spaces.
+#
+# legend_round controls how tick labels are formatted on the color bar:
+#   int  — round to nearest integer (default)
+#   0-6  — number of decimal places (e.g. 2 → "0.51")
+#
+# epicenter_highlight (optional): when true, Bunia / Mongbwalu / Rwampara use a
+# fixed map colour and appear in the legend as "epicenter" (with zero / no data).
+groups:
+  insp_sitrep:
+    label: "Observed (INSP sitrep)"
+    label_fr: "Observé (sitrep INSP)"
+    palette: reds
+    scale: log
+    legend_round: int
+  testing_capacity:
+    label: "Testing capacity"
+    label_fr: "Capacité de dépistage"
+    palette: viridis
+    scale: log
+    legend_round: int
+  flowminder_short_trips:
+    label: "Movements from epicentres (Flowminder)"
+    label_fr: "Mouvements depuis les épicentres (Flowminder)"
+    palette: reds
+    scale: log
+    legend_round: 1
+    # Highlight source zones (Bunia, Mongbwalu, Rwampara) with a fixed map colour.
+    epicenter_highlight: true
+  worldpop:
+    label: "Population"
+    label_fr: "Population"
+    palette: viridis
+    scale: log
+    legend_round: int
+  grid3_healthsites:
+    label: "Health facilities (GRID3)"
+    label_fr: "Établissements de santé (GRID3)"
+    palette: viridis
+    scale: log
+    legend_round: int
+  healthsites_io:
+    label: "Health facilities (healthsites.io)"
+    label_fr: "Établissements de santé (healthsites.io)"
+    palette: viridis
+    scale: log
+    legend_round: int
+  ccvi:
+    label: "Vulnerability (CCVI)"
+    label_fr: "Vulnérabilité (CCVI)"
+    palette: viridis
+    scale: log
+    legend_round: 2
+  fao_lccs:
+    label: "Land cover (FAO LCCS)"
+    label_fr: "Occupation des sols (FAO LCCS)"
+    palette: viridis
+    scale: log
+    legend_round: 4
+  gdp_pc:
+    label: "GDP per capita"
+    label_fr: "PIB par habitant"
+    palette: viridis
+    scale: log
+    legend_round: int
+
+
+# ---------------------------------------------------------------------------
+# Group ordering
+# ---------------------------------------------------------------------------
+# Groups listed here appear first in the layer dropdown, in this order.
+# Auto-discovered groups not listed here appear after, alphabetically.
+group_order:
+  - insp_sitrep
+  - testing_capacity
+  - flowminder_short_trips
+  - worldpop
+  - grid3_healthsites
+  - healthsites_io
+  - ccvi
+  - fao_lccs
+  - gdp_pc
+  - refugee_sites
+  - cross_border

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Mercy Corps
+# Copyright (c) 2026 Prosper Global
 #
 # Portal profile: ArcGIS Online (AGOL) — the current deployment target.
 #
@@ -17,11 +17,10 @@
 #     (see docs/PROJECT_BRIEF.md §2) — never on `zscode`, which is not unique.
 
 profile: agol
-label: "Mercy Corps ArcGIS Online"
+label: "Prosper Global ArcGIS Online"
 
 portal:
-  # e.g. https://mercycorps.maps.arcgis.com
-  url: "TODO: AGOL org portal URL"
+  url: "https://mercycorps.maps.arcgis.com/"
   # REST endpoint; derived from `url` when left null.
   sharing_rest: null
   org_id: "TODO: AGOL org short id"
@@ -34,7 +33,7 @@ auth:
   #   web_tier   — Enterprise IWA/PKI; browser supplies credentials
   mode: anonymous
   # Env var names, not values.
-  api_key_env: MC_AGOL_API_KEY
+  api_key_env: PG_AGOL_API_KEY
   username_env: MC_AGOL_USERNAME
   password_env: MC_AGOL_PASSWORD
   # Bake the key into the generated HTML? Default false: these pages are
