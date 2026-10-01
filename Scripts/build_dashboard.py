@@ -122,7 +122,14 @@ def _inject_carto_key(engine_js: str) -> str:
 # file lands mid-sheet and is silently dropped -- the rule never errors, the
 # fonts just never load. Hoist them to the top of the combined sheet so the
 # brand layer can pull its webfonts from the one file it owns.
-_CSS_IMPORT = re.compile(r"^[ \t]*@import[^;]+;[ \t]*\n?", re.MULTILINE)
+#
+# Matches to the LAST semicolon on the line, not the first. A Google Fonts URL
+# carries semicolons inside it (family=League+Spartan:wght@300;400;500), so
+# `[^;]+;` truncates the import mid-URL and leaves an unterminated string at
+# the top of the stylesheet -- which makes the browser discard the ENTIRE
+# sheet. It fetches 200 OK and logs nothing; the page just renders unstyled.
+# tests/test_css_import_hoist.py pins this.
+_CSS_IMPORT = re.compile(r"^[ \t]*@import[^\n]*;[ \t]*$\n?", re.MULTILINE)
 
 
 def _write_shared_assets(assets_dir) -> tuple[int, int]:
