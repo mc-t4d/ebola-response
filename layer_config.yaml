@@ -16,6 +16,14 @@ exclude:
   - epi_mve_inrb_app
   - aggregated_insp_linelist
   - genomic_surveillance
+  # Deferred for the first build (docs/PROJECT_BRIEF.md §3). The weekly
+  # short-trips series is cohort-aggregate — Bunia/Mongbwalu/Rwampara pooled,
+  # every origin row identical — so offering it as a per-zone layer invites a
+  # pairwise reading the data cannot support. Dropping it here also means
+  # body.flow-layer-active never applies, which retires #flow-hint with it.
+  # The in/out-flow arc toggle is gated separately, on
+  # layers.flowminder_short_trips.enabled in config/portal.*.yaml.
+  - flowminder_short_trips
   # - healthsites_io                  # entire group
   # - cross_border__poe_passengers__n_poes   # single leaf
 

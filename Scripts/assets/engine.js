@@ -1727,9 +1727,60 @@ function recompute() {
   updateLayerMeta(layer);
 }
 
+// --- Classed (threshold) ramp -------------------------------------------
+// House style paints case counts in five explicit classes (1–4 / 5–10 /
+// 11–21 / 22–44 / 45+) so the web map matches the daily static map, rather
+// than interpolating a continuous palette over a log domain. Layers carrying
+// a `classes` array -- attached from config/portal.*.yaml by
+// common/brand_cartography.py -- take this path instead of lerpColor().
+function layerIsClassed(layer) {
+  return !!(layer && layer.classes && layer.classes.length);
+}
+
+// Index of the class a value falls in, or -1 if it falls below the first
+// class. The last class may carry max == null, meaning open-ended.
+function classIndexFor(v, classes) {
+  for (let i = 0; i < classes.length; i++) {
+    const c = classes[i];
+    if (v >= c.min && (c.max == null || v <= c.max)) return i;
+  }
+  return -1;
+}
+
+function classLabel(c) {
+  return (c && (c["label_" + currentLang] || c.label_en)) || "";
+}
+
+// Last-resort fills if a profile omits them. The portal profile always sets
+// both (tests/test_brand_ramp_in_sync.py asserts null_color exists and differs
+// from zero_color), so these only keep a malformed config from painting
+// `undefined`. They must stay DIFFERENT from each other: collapsing them is
+// exactly the null-reads-as-zero bug the standing rule forbids.
+const CLASSED_NULL_FALLBACK = "#e1e1e1";  // style-guide land grey
+const CLASSED_ZERO_FALLBACK = "#ffffff";
+
+// A zone with no value at all is "no cases reported" -- NULL, not zero -- and
+// renders as the style-guide land grey. Keeping it distinct from a reported 0
+// is a standing rule: "no cases yet" must never read as a confirmed zero.
+function classedColor(v, layer) {
+  const nullFill = layer.null_color || CLASSED_NULL_FALLBACK;
+  // zero_is_no_data: the source fills unreached zones with 0 rather than null,
+  // so a 0 means "not reporting", not "observed zero". Config-driven; see
+  // cartography.case_choropleth.zero_is_no_data in the portal profile.
+  const zeroFill = layer.zero_is_no_data
+    ? nullFill
+    : (layer.zero_color || CLASSED_ZERO_FALLBACK);
+  if (v == null || Number.isNaN(v)) return nullFill;
+  if (v <= 0) return zeroFill;
+  const i = classIndexFor(v, layer.classes);
+  if (i < 0) return zeroFill;
+  return layer.classes[i].color;
+}
+
 function valueToColor(v, ref, layer) {
   if (isHubZone(ref, layer)) return MATRIX_ORIGIN_FILL;
   if (isEpicenterZone(ref, layer)) return EPICENTER_FILL;
+  if (layerIsClassed(layer)) return classedColor(v, layer);
   const d = currentDomain;
   if (d.isLog && v <= 0) return ZERO_FILL;
   let t;
@@ -1745,6 +1796,17 @@ function valueToColor(v, ref, layer) {
 // value stays readable under the ring) and lifts the opacity slightly. Both the
 // snapshot and genomic branches used to carry their own copy of this.
 function zoneFillStyle(v, has, ref, layer, bump) {
+  // Classed layers paint the no-value case rather than leaving the polygon
+  // transparent. An unaffected zone is "no cases reported" and must be
+  // visible as such -- a see-through zone reads as missing geometry, and is
+  // indistinguishable from a zone outside the focus area.
+  if (layerIsClassed(layer)) {
+    const op = layer.fill_opacity != null ? layer.fill_opacity : 0.85;
+    return {
+      fillColor: valueToColor(has ? v : null, ref, layer),
+      fillOpacity: bump ? Math.min(1, op + 0.1) : op
+    };
+  }
   if (!has) return {fillOpacity: 0};
   const isZero = currentDomain.isLog ? v <= 0 : v === 0;
   if (bump) {
@@ -1874,29 +1936,73 @@ function updateLayerMeta(layer) {
 
 function updateLegend(layer) {
   document.getElementById("legend-title").innerHTML = "<strong>" + layer.label + "</strong>";
-  const stops = [];
-  const N = 32;
-  for (let i = 0; i < N; i++) {
-    const t = i / (N - 1);
-    stops.push(rgb(lerpColor(currentDomain.palette, t)) + " " + Math.round(t * 100) + "%");
-  }
-  document.getElementById("legend-bar").style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
+  const bar = document.getElementById("legend-bar");
   const ticks = document.getElementById("legend-ticks");
-  const lo = currentDomain.min, hi = currentDomain.max;
-  const mid = currentDomain.isLog ? Math.sqrt(lo * hi) : (lo + hi) / 2;
-  var lr = layer.legend_round != null ? layer.legend_round : "int";
-  ticks.innerHTML =
-    "<span>" + fmtLegend(lo,  lr) + "</span>" +
-    "<span>" + fmtLegend(mid, lr) + "</span>" +
-    "<span>" + fmtLegend(hi,  lr) + "</span>";
+  const classesEl = document.getElementById("legend-classes");
+
+  // Classed layers get one swatch per class and no gradient. A continuous bar
+  // under a five-class map is an outright misread: it implies values between
+  // the breaks are shaded differently, when every zone in a class is one hue.
+  if (layerIsClassed(layer)) {
+    if (bar) bar.style.display = "none";
+    if (ticks) ticks.style.display = "none";
+    if (classesEl) {
+      classesEl.style.display = "";
+      classesEl.innerHTML = layer.classes.map(function (c) {
+        return "<div class='legend-class-row'>" +
+          "<span class='swatch' style='background:" + c.color + "'></span>" +
+          "<span class='legend-class-label'>" + classLabel(c) + "</span>" +
+          "</div>";
+      }).join("");
+    }
+  } else {
+    if (classesEl) { classesEl.style.display = "none"; classesEl.innerHTML = ""; }
+    if (bar) bar.style.display = "";
+    if (ticks) ticks.style.display = "";
+    const stops = [];
+    const N = 32;
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      stops.push(rgb(lerpColor(currentDomain.palette, t)) + " " + Math.round(t * 100) + "%");
+    }
+    bar.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
+    const lo = currentDomain.min, hi = currentDomain.max;
+    const mid = currentDomain.isLog ? Math.sqrt(lo * hi) : (lo + hi) / 2;
+    var lr = layer.legend_round != null ? layer.legend_round : "int";
+    ticks.innerHTML =
+      "<span>" + fmtLegend(lo,  lr) + "</span>" +
+      "<span>" + fmtLegend(mid, lr) + "</span>" +
+      "<span>" + fmtLegend(hi,  lr) + "</span>";
+  }
+
   document.getElementById("legend-scale").textContent =
     layer.legend_caption
       ? layer.legend_caption
-      : (currentDomain.isLog ? t("ui.legend.log_scale") : t("ui.legend.linear_scale"));
-  var grayParts = [
-    "<span class='swatch' style='background:" + ZERO_FILL + "'></span>" + t("ui.legend.zero"),
-    "<span class='swatch swatch-no-data'></span>" + t("ui.legend.no_data")
-  ];
+      : (layerIsClassed(layer)
+          ? ""
+          : (currentDomain.isLog ? t("ui.legend.log_scale") : t("ui.legend.linear_scale")));
+  // Classed layers name their own no-data class and use the configured zero
+  // fill, so the shared grey row reads from the layer rather than the
+  // continuous-ramp constants.
+  var grayParts = layerIsClassed(layer)
+    ? (function () {
+        var nullSwatch =
+          "<span class='swatch' style='background:" +
+          (layer.null_color || CLASSED_NULL_FALLBACK) + "'></span>" +
+          ((layer["null_label_" + currentLang] || layer.null_label_en) || t("ui.legend.no_data"));
+        // With zero_is_no_data, no zone is ever painted zero_color, so listing
+        // a separate "zero" swatch would advertise a class the map cannot show.
+        if (layer.zero_is_no_data) return [nullSwatch];
+        return [
+          "<span class='swatch' style='background:" +
+            (layer.zero_color || CLASSED_ZERO_FALLBACK) + "'></span>" + t("ui.legend.zero"),
+          nullSwatch
+        ];
+      })()
+    : [
+        "<span class='swatch' style='background:" + ZERO_FILL + "'></span>" + t("ui.legend.zero"),
+        "<span class='swatch swatch-no-data'></span>" + t("ui.legend.no_data")
+      ];
   if (layerEpicenterHighlight(layer)) {
     grayParts.push(
       "<span class='swatch' style='background:" + EPICENTER_FILL + "'></span>" + t("ui.legend.epicenter")

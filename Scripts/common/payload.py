@@ -15,6 +15,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from common.data_sources import *  # noqa: F401,F403 -- re-export all loaders/constants
+from common.brand_cartography import (
+    apply_case_classes, drop_gated_layers, flowminder_enabled,
+)
 from common.paths import (
     BUILD_GEOJSON, OSRM_TRAVEL_TIME_CSV, DATA_ROOT, BUILD_DIR,
 )
@@ -59,6 +62,22 @@ def build_shared_payload() -> dict:
         if "{origin}" in layer.get("label", ""):
             layer["label_template"] = layer["label"]
             layer["label"] = layer["label"].replace("{origin}", TRAVEL_FROM_ZONE)
+
+    # Swap the INSP continuous log ramp for the house 5-class ramp on the
+    # case-count layers. Reads config/portal.*.yaml, so breaks and colours are
+    # never written in code. A count of 0 here means the profile's
+    # apply_to_layers ids match no layer -- the map would silently keep the
+    # INSP ramp -- so it is printed rather than passed over.
+    classed = apply_case_classes(layers)
+    print(f"  brand case classes applied to {classed} layer(s)")
+
+    # Drop dropdown layers belonging to a disabled portal layer. layer_config's
+    # `exclude` only reaches auto-discovered layers, so the Flowminder entries
+    # that come from EXTRA_LAYER_DEFS have to be filtered here.
+    before = len(layers)
+    layers = drop_gated_layers(layers)
+    if before != len(layers):
+        print(f"  dropped {before - len(layers)} gated layer(s) from the dropdown")
 
     phr_context_by_lang = load_public_health_context()
     i18n = build_i18n_payload(layers, phr_context_by_lang)
@@ -188,7 +207,16 @@ def build_shared_payload() -> dict:
         "matrix_default_origin": matrices.get("default_origin", "Mongbwalu"),
         "flow_catalogs": flow_catalogs,
         "flow_arc_layer": flow_arc_layer,
-        "flow_arcs_available": bool(flow_catalogs["flowminder_latest"].get("zones")),
+        # Gated on the portal profile. Flowminder is deferred for the first
+        # build (PROJECT_BRIEF §3): the weekly short-trips series is
+        # cohort-aggregate, so per-zone in/out-flow arrows imply pairwise
+        # movement the data cannot support. False hides the toggle row and the
+        # flow hint; flipping layers.flowminder_short_trips.enabled in the
+        # profile brings them back with no code change.
+        "flow_arcs_available": (
+            flowminder_enabled()
+            and bool(flow_catalogs["flowminder_latest"].get("zones"))
+        ),
         "flow_default_hub": flow_catalogs["flowminder_latest"].get(
             "default_hub", "Mongbwalu"),
         "flowminder_latest_yyyymm": flow_yyyymm,

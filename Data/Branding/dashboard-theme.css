@@ -971,6 +971,38 @@ h1, h2, .mc-title { color: var(--brand-red); }
 
 .mc-legend-line--dashed { border-top-style: dashed; }
 
+/* Classed-ramp legend (#legend-classes), shown instead of the gradient bar on
+   layers that carry explicit breaks. One row per class, matching the static
+   map's stacked legend rather than a continuous strip. */
+.legend-classes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 2px;
+}
+
+.legend-class-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--brand-font-label);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* The swatch class is upstream's; size it to the static map's proportions and
+   give it a hairline so a pale class still reads as a filled box. */
+.legend-class-row .swatch {
+  width: 18px;
+  height: 11px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(35, 31, 32, 0.25);
+  border-radius: 0;
+}
+
+.legend-class-label { color: inherit; }
+
 /* --------------------------------------------------------------------------
    7. Print + motion. The web page and the daily static map should read as one
       family.

@@ -194,6 +194,9 @@ __NAV_LINKS__
   <div class="panel-body">
     <div class="legend-bar" id="legend-bar"></div>
     <div class="legend-ticks" id="legend-ticks"></div>
+    <!-- Discrete swatch rows for classed (threshold) layers. updateLegend()
+         shows exactly one of this and the bar/ticks pair above. -->
+    <div class="legend-classes" id="legend-classes" style="display:none"></div>
     <div class="legend-scale" id="legend-scale"></div>
     <div id="legend-gray" style="font-size:11px;color:#bbb;margin-top:4px"></div>
   </div>

@@ -143,7 +143,20 @@ layers:
     service_url: null
     layer_id: 0
     geometry_type: polygon
+    # THE FLOWMINDER GATE. False for the first build; flipping it to true
+    # restores the in/out-flow toggle row AND the dropdown layers below, with
+    # no code change. See docs/PROJECT_BRIEF.md §3 for why it is off: the
+    # weekly short-trips series is cohort-aggregate (Bunia/Mongbwalu/Rwampara
+    # pooled, every origin row identical), so anything implying pairwise
+    # per-zone movement overstates what the data can support.
     enabled: false
+    # Dashboard layer ids this gate also removes from the Source dropdown.
+    # These come from EXTRA_LAYER_DEFS in Scripts/common/data_sources.py, which
+    # bypasses layer_config.yaml's `exclude`, so they have to be named here.
+    dashboard_layer_ids:
+      - "flow::in"       # relocated persons Feb–Mar 2026
+      - "flow::in_apr"   # relocated persons Mar–Apr 2026
+      - "flow::od"       # in/out-flow arc catalogue
     fields:
       join_key: "nom_join"
       value: "flowminder_short_trips"
@@ -164,6 +177,15 @@ cartography:
     # Web uses an open-ended top class; the static map prints the true max
     # (e.g. 45-1728).
     scale: threshold          # explicit breaks, not the INSP log scale
+    # Layer ids these classes replace the continuous ramp on. All are person
+    # counts, so the same breaks read correctly across them. Any layer not
+    # listed keeps upstream's palette/scale.
+    apply_to_layers:
+      - "obs::total"
+      - "obs::confirmed"
+      - "obs::suspected"
+      - "obs::conf_d"
+      - "obs::susp_d"
     breaks:
       - {min: 1,  max: 4,    color: "#FFD200", label_en: "1–4",   label_fr: "1–4"}
       - {min: 5,  max: 10,   color: "#F28D07", label_en: "5–10",  label_fr: "5–10"}
@@ -176,6 +198,17 @@ cartography:
     null_label_en: "No cases reported"
     null_label_fr: "Aucun cas signalé"
     zero_color: "#FFFFFF"
+    # Upstream's payload fills every unreached zone with 0 rather than leaving
+    # it null, so "a confirmed zero" does not exist as a separate state in this
+    # source: the INSP sitrep lists affected zones, and the other 455 are
+    # simply not reporting. Rendering those white would read as an observed
+    # zero and all but vanish against the basemap, so a 0 is drawn as
+    # "no cases reported".
+    #
+    # Set false once the AGOL case layer carries a real null — then an observed
+    # zero becomes meaningful and gets zero_color. The two colours stay defined
+    # and distinct either way.
+    zero_is_no_data: true
     outline: "#FFFFFF"
     outline_width: 0.5
     opacity: 0.85
