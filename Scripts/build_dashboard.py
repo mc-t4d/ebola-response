@@ -62,15 +62,16 @@ import re
 from common.paths import OUTPUT_DIR, ASSETS_DIRNAME, PAGE_FILENAMES, SCRIPT_DIR
 from common.payload import build_shared_payload
 from common.theme import load_theme_css
-from pages import (
-    snapshot, spatial_risk, trends, context,
-    clinical_symptoms, surveillance_testing, genomic_epidemiology,
-)
+from pages import snapshot, trends
 
-PAGE_MODULES = [
-    snapshot, trends, spatial_risk, context,
-    clinical_symptoms, surveillance_testing, genomic_epidemiology,
-]
+# MC ships Current Snapshot and Epidemiological Trends; Transmission joins them
+# once Scripts/pages/transmission.py lands. Upstream's spatial_risk, context,
+# clinical_symptoms, surveillance_testing and genomic_epidemiology pages are
+# dropped -- see docs/PROJECT_BRIEF.md §3 "Tabs". Adding a page means adding it
+# here AND to NAV_ITEMS/PAGE_TITLES in common/chrome.py and PAGE_FILENAMES in
+# common/paths.py; the three are checked against each other by
+# tests/test_page_registry_agrees.py.
+PAGE_MODULES = [snapshot, trends]
 
 
 # CARTO's raster basemaps require an API key as of 2026; engine.js ships this
@@ -144,16 +145,8 @@ def _write_shared_assets(assets_dir) -> tuple[int, int]:
     )
     (assets_dir / "engine.js").write_text(engine_js, encoding="utf-8")
 
-    # Page-scoped script for the genomic tab (only that page references it, but
-    # it's written unconditionally alongside engine.js).
-    genomic_js = (SCRIPT_DIR / "assets" / "genomic.js").read_text(encoding="utf-8")
-    (assets_dir / "genomic.js").write_text(genomic_js, encoding="utf-8")
-
-    # Vendored PearTree phylogeny renderer (~1.5 MB, genomic-page-only; the tag
-    # is emitted only on genomic-epidemiology.html). Copied byte-for-byte -- it's
-    # a pre-built minified bundle, not source we edit here.
-    peartree = (SCRIPT_DIR / "assets" / "peartree.bundle.min.js").read_bytes()
-    (assets_dir / "peartree.bundle.min.js").write_bytes(peartree)
+    # genomic.js and the ~1.5 MB vendored peartree.bundle.min.js used to be
+    # copied here. Both were genomic-page-only, and that page is gone.
 
     return len(css.encode("utf-8")), len(engine_js.encode("utf-8"))
 

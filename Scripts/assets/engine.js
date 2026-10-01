@@ -2390,13 +2390,6 @@ const ZONE_SEARCH_VIEWS = {
     panel: "info",
     select: function(entry) { setMapSelection(entry.id); },
   },
-  "context": {
-    kinds: ["health_zone"],
-    placeholder: "ui.zone_search_placeholder",
-    aria: "ui.zone_search",
-    panel: "context",
-    select: function(entry) { selectContextZone(entry.id); },
-  },
   "trends": {
     kinds: ["province", "health_zone"],
     // The only tab that lists provinces, so the only one whose placeholder
@@ -2410,38 +2403,6 @@ const ZONE_SEARCH_VIEWS = {
       setTrendsSelection(entry.id);
     },
   },
-  "epi-trends": {
-    kinds: ["health_zone"],
-    placeholder: "ui.zone_search_placeholder",
-    aria: "ui.zone_search",
-    select: function(entry) {
-      // A ranked list of one zone isn't useful, so this selects/highlights the
-      // row rather than filtering the table -- same as clicking the row.
-      // setEpiSelected() re-renders the table, so find the row afterwards.
-      setEpiSelected(entry.id);
-      const tbody = document.getElementById("epi-trends-tbody");
-      if (!tbody) return;
-      const rows = tbody.querySelectorAll("tr[data-nom]");
-      for (let i = 0; i < rows.length; i++) {
-        if (rows[i].getAttribute("data-nom") === entry.id) {
-          if (rows[i].scrollIntoView) rows[i].scrollIntoView({block: "center"});
-          break;
-        }
-      }
-    },
-  },
-  "genomic-epidemiology": {
-    kinds: ["health_zone"],
-    placeholder: "ui.zone_search_placeholder",
-    aria: "ui.zone_search",
-    // {toggle:false} matters: _emitZoneClick is a toggle by design (clicking
-    // the same polygon twice clears). The search clears its input after every
-    // pick, so a repeat search would silently DEselect while the shared zoom
-    // still framed the zone -- map says "here", tree says "nothing".
-    select: function(entry) {
-      if (genomicMapHooks) genomicMapHooks._emitZoneClick(entry.id, {toggle: false});
-    },
-  },
 };
 
 // Zoom padding as Leaflet [x, y]. Narrow Trends/Spatial Risk maps are
@@ -2450,11 +2411,11 @@ function zoneSearchPad() {
   return window.matchMedia("(max-width: 700px)").matches ? [16, 16] : [40, 40];
 }
 
-// Width of map hidden behind an OVERLAYING panel. Zero everywhere except
-// Genomic: the Trends and Spatial Risk rails narrow #map itself, so Leaflet
-// already fits inside the visible area there, but #genomic-panel sits on top
-// of a full-width #map. Its width is an inline px style written by
-// applyWidth() in genomic.js, so it is read from the element.
+// Width of map hidden behind an OVERLAYING panel. Always zero since the MC tab
+// trim: the Genomic tab was the only view with a panel sitting on top of a
+// full-width #map. The Trends rail narrows #map itself, so Leaflet already
+// fits inside the visible area. Kept as a seam for the Transmission tab, which
+// may yet overlay a panel.
 function zoneSearchInsetX() {
   if (ZONE_SEARCH_VIEW_ID !== "genomic-epidemiology") return 0;
   const panel = document.getElementById("genomic-panel");

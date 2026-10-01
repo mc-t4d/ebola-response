@@ -101,11 +101,6 @@ SUPPORTED_LANGS  = ("en", "fr")
 PAGE_FILENAMES = {
     "map": "index.html",
     "trends": "trends.html",
-    "epi-trends": "spatial-risk.html",
-    "context": "context.html",
-    "clinical-symptoms": "clinical-symptoms.html",
-    "surveillance-testing": "surveillance-testing.html",
-    "genomic-epidemiology": "genomic-epidemiology.html",
 }
 
 ASSETS_DIRNAME = "assets"

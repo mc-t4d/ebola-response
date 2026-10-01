@@ -16,7 +16,7 @@ CSS = REPO / "Scripts" / "assets" / "dashboard.css"
 
 # Views that render a real map + search. Kept as a literal rather than imported
 # so a mistake in chrome.NAV_ITEMS cannot make this test agree with itself.
-NON_STUB_VIEWS = ["map", "trends", "epi-trends", "context", "genomic-epidemiology"]
+NON_STUB_VIEWS = ["map", "trends"]
 
 # Search boxes replaced by the single component. None may come back.
 RETIRED_IDS = [
@@ -286,14 +286,6 @@ def test_zone_search_repositioned_in_band_c():
         )
 
 
-def test_genomic_search_hidden_in_band_c():
-    band_c = _band_c(_css())
-    rules = _rules_for(band_c, "#zone-search")
-    genomic = [b for s, b in rules if "genomic-epidemiology" in s]
-    assert genomic, "no band-C #zone-search rule for the genomic view"
-    assert any("display:none" in b.replace(" ", "") for b in genomic)
-
-
 def test_zone_search_views_covers_exactly_the_non_stub_views():
     """A tab added later must not silently ship without a search, and a
     removed tab must not leave a dangling entry."""
@@ -351,27 +343,11 @@ def test_applystatici18n_dependencies_are_declared_before_the_controller_calls_i
     )
 
 
-GENOMIC = REPO / "Scripts" / "assets" / "genomic.js"
-
-
 def test_zone_click_emitter_threads_options():
     """The search needs a non-toggling select; map clicks keep toggling."""
     engine = ENGINE.read_text(encoding="utf-8")
     assert "_emitZoneClick: function (nom, opts)" in engine
     assert "onZoneClickCb(nom, opts)" in engine
-
-
-def test_genomic_select_zone_honours_the_toggle_option():
-    genomic = GENOMIC.read_text(encoding="utf-8")
-    assert "function selectZone(nom, opts)" in genomic
-    assert "opts.toggle === false" in genomic
-
-
-def test_genomic_publishes_its_panel_width():
-    """The CSS rail clamp reads --genomic-panel-width; applyWidth() is the
-    single writer of the inline px width, so it must publish it too."""
-    genomic = GENOMIC.read_text(encoding="utf-8")
-    assert "--genomic-panel-width" in genomic
 
 
 def test_zone_search_view_panels_name_real_elements():

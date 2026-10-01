@@ -23,20 +23,14 @@ from common.theme import json_default
 NAV_ITEMS = [
     ("map", "ui.view_map", "Current Snapshot"),
     ("trends", "ui.view_trends", "Epidemiological Trends"),
-    ("epi-trends", "ui.view_epi_trends", "Spatial Risk"),
-    ("context", "ui.view_context", "Public Health Context"),
-    ("clinical-symptoms", "ui.view_clinical_symptoms", "Clinical Symptoms"),
-    ("surveillance-testing", "ui.view_surveillance_testing", "Surveillance and Testing"),
-    ("genomic-epidemiology", "ui.view_genomic_epidemiology", "Genomic Epidemiology"),
 ]
 
 # Views with no real content yet -- just a "coming soon" stub panel (see
-# #stub-<id> in BODY_TEMPLATE). They still get the full shared header/tabs/
-# footer chrome and the full map engine + payload underneath (hidden via the
-# "stub-view" body class below), matching every other page for now; see the
-# README "Multi-page structure" section for why that engine/payload sharing
-# exists and the trade-off it implies.
-STUB_VIEWS = {"clinical-symptoms", "surveillance-testing"}
+# #stub-<id> in BODY_TEMPLATE). Empty since the MC trim: both of upstream's
+# stubs (clinical-symptoms, surveillance-testing) were dropped tabs. The
+# machinery stays because the Transmission tab may want a stub while it is
+# being built.
+STUB_VIEWS: set[str] = set()
 
 HEAD_TEMPLATE = r"""<!doctype html>
 <html lang="en">
@@ -426,11 +420,6 @@ __EXTRA_SCRIPTS__
 PAGE_TITLES = {
     "map": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard",
     "trends": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — epidemiological trends",
-    "epi-trends": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — spatial risk",
-    "context": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — public health context",
-    "clinical-symptoms": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — clinical symptoms",
-    "surveillance-testing": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — surveillance and testing",
-    "genomic-epidemiology": "DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — genomic epidemiology",
 }
 
 
@@ -458,9 +447,14 @@ def _render_nav(active_view: str, assets_prefix: str) -> str:
 # Payload keys only one view reads; stripped from every OTHER page's inline
 # payload so a big per-view blob doesn't bloat pages that never use it. Map:
 # payload key -> set of view_ids allowed to carry it.
-_PAGE_SCOPED_PAYLOAD_KEYS = {
-    "import_force_pairwise": {"epi-trends"},
-    "genomic": {"genomic-epidemiology"},
+#
+# Both keys now map to the empty set: the only views that read them (epi-trends
+# and genomic-epidemiology) are dropped tabs. Keeping the entries means the
+# payload builder can still emit them while no page carries the weight. They go
+# away entirely when build_shared_payload() stops producing them.
+_PAGE_SCOPED_PAYLOAD_KEYS: dict[str, set[str]] = {
+    "import_force_pairwise": set(),
+    "genomic": set(),
 }
 
 
@@ -468,9 +462,8 @@ def render_page(view_id: str, payload: dict, assets_prefix: str = "assets/",
                 *, page_body: str = "", extra_scripts: str = "",
                 extra_head: str = "") -> str:
     """Assemble one full page. ``view_id`` is one of the ids in NAV_ITEMS
-    (map | trends | epi-trends | context | clinical-symptoms |
-    surveillance-testing | genomic-epidemiology); the last three are
-    STUB_VIEWS -- "coming soon" placeholders, see that set's docstring.
+    (map | trends after the MC tab trim; Transmission joins them later).
+    STUB_VIEWS is currently empty -- see that set's docstring.
 
     ``payload`` is the shared dict from common.payload.build_shared_payload();
     it is embedded inline (as before the split) rather than loaded from an
