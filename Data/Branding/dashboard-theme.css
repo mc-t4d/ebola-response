@@ -1,22 +1,26 @@
 /*
- * Mercy Corps — DRC Ebola Web Dashboard theme
+ * DRC Ebola Web Dashboard — brand theme layer
  *
  * SPDX-License-Identifier: MIT
  * Copyright (c) 2026 INRB / INOHA / INSP  (upstream: INRB-UMIE/BDBV2026-Epidemic_Dashboard)
- * Copyright (c) 2026 Mercy Corps         (modifications and new work)
+ * Copyright (c) 2026 Prosper Global       (modifications and new work)
+ *
+ * Colours, type and line conventions follow the T4D Cartographic Style-Guide
+ * (Final, 05/25). The case-count ramp is sampled from the published daily
+ * static map so web and print show the same five classes.
  *
  * STRUCTURE — read before editing:
  *
  *   1. this header + the webfont @import
  *   2. the UPSTREAM theme layer, byte-for-byte as it stands at upstream/main
- *   3. the "MERCY CORPS OVERRIDES" section at the very end of the file
+ *   3. the "BRAND OVERRIDES" section at the very end of the file
  *
  * Upstream's layer is kept verbatim on purpose. It is not just design tokens:
  * its Phase B half styles the page, floating panels, header tracker, controls,
  * modals and Leaflet chrome through existing DOM IDs, and tests/ asserts against
  * several of its rules. Replacing it unstyles the dashboard and fails the suite.
  *
- * So: MC changes go in section 3 ONLY, where the cascade lets a later
+ * So: our changes go in section 3 ONLY, where the cascade lets a later
  * declaration win. That also keeps the brand delta legible as one block:
  *
  *     git diff upstream/main -- Data/Branding/dashboard-theme.css
@@ -28,7 +32,7 @@
  *      themeVar() fallback baked into Scripts/assets/engine.js, and this file's
  *      token parser is last-match-wins, so an override silently breaks the
  *      build. Changing the zone/province grammar means editing the CSS token
- *      AND the engine.js fallback together. MC-scoped names (--mc-*) are fine.
+ *      AND the engine.js fallback together. --brand-* names are fine.
  *
  *   b) Never add a #tracker rule there.
  *      tests/test_tracker_headline.py counts hue usages under #tracker exactly:
@@ -38,8 +42,12 @@
  * concatenated after dashboard.css, so _write_shared_assets() in
  * build_dashboard.py hoists @import lines to the top of the combined sheet.
  * Keep the @import here; do not move it into section 3.
+ *
+ * Merriweather carries titles and body copy; League Spartan carries data
+ * labels and legend text. That is the style-guide's assignment and it is the
+ * opposite of the usual serif-body/sans-display habit — do not swap them.
  */
-@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
 
 /*
  * BDBV epidemic dashboard — theme layer
@@ -651,142 +659,207 @@ body.trends-splitting #trends-split-handle::before {
 
 
 /* ==========================================================================
-   MERCY CORPS OVERRIDES
-   Everything above this line is upstream. Everything below is MC.
+   BRAND OVERRIDES
+   Everything above this line is upstream. Everything below is ours.
    See the rules in the file header before adding to this section.
+
+   SOURCE OF TRUTH: T4D Cartographic Style-Guide (Final, 05/25), plus the
+   published daily static map, whose legend swatches were sampled directly so
+   the web ramp and the print ramp are the same five colours.
+
+   Tokens are named --brand-* rather than after an organisation on purpose:
+   Mercy Corps HQ has rebranded to Prosper Global while the DRC team and the
+   Ebola response remain Mercy Corps. When this map rebrands, only the VALUES
+   below change -- no token name, no rule, nothing in any other file.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Re-skin upstream's brand tokens with MC values.
+   1. Re-skin upstream's own tokens with style-guide values.
 
-   These are the tokens upstream's Phase B rules already consume, so redefining
-   the value here re-skins the whole dashboard without touching a single rule.
-   Deliberately excluded: --zone-* and --province-* (locked to engine.js
-   fallbacks by tests/test_zone_state_styling.py), and --navy / --case-marker,
-   which name data meanings rather than brand.
-
-   TODO confirm against the Mercy Corps brand guide — --mc-red is the one value
-   everything else was picked to sit beside.
+   These are the tokens upstream's Phase B rules already consume, so setting
+   the value here re-skins the whole dashboard without touching a rule.
+   Deliberately excluded: --zone-* and --province-*, locked to engine.js
+   fallbacks by tests/test_zone_state_styling.py.
    -------------------------------------------------------------------------- */
 :root {
-  --bg: #f6f4f1;
-  --card: #ffffff;
-  --border: #d8d4cf;
-  --ink: #1f1f1f;
-  --muted: #5c5c5c;
-  --maroon: #a81b12;   /* deepest brand red — tracker's single "cases" hue */
-  --red: #da291c;      /* MC red — titles, active state */
-  --terracotta: #9c4a0f;
-  --salmon: #fbe9e7;
-  --grip: #d8d4cf;
-  --link: #a81b12;
-  --header-bg: #f6f4f1;
-  --green: #2e7d32;    /* shared with the RESET outline below */
+  --bg: #f8f8f8;        /* LAND Background            */
+  --card: #ffffff;      /* WHITE                      */
+  --border: #e1e1e1;    /* unaffected-zone grey       */
+  --ink: #231f20;       /* BLACK — titles, body copy  */
+  --muted: #54585a;     /* DARK GRAY — labels, captions, leader lines */
+  --maroon: #c8102e;    /* MC RED — reserved for urgent messaging     */
+  --red: #c8102e;       /* MC RED                     */
+  --terracotta: #db8321;/* TERRACOTTA                 */
+  --salmon: #f7d0d6;    /* MC RED tint                */
+  --grip: #c2c2c2;      /* GRAY LAND Foreground       */
+  --link: #005776;      /* MIDNIGHT — reads as a link without spending MC RED */
+  --header-bg: #f8f8f8;
+  --green: #81bc00;     /* GREEN                      */
+  --navy: #005776;      /* MIDNIGHT                   */
+  --case-marker: #005776;
 }
 
 /* --------------------------------------------------------------------------
-   2. MC-only tokens — nothing upstream refers to these.
+   2. Brand tokens. Nothing upstream refers to these.
    -------------------------------------------------------------------------- */
 :root {
-  /* Brand + typography */
-  --mc-red: #da291c;
-  --mc-red-dark: #a81b12;
-  --mc-red-tint: #fbe9e7;
-  --mc-font-display: "League Spartan", "Trebuchet MS", sans-serif;
-  --mc-font-serif: "Merriweather", Georgia, "Times New Roman", serif;
+  /* -- Palette (style-guide names kept so the guide stays greppable) ------ */
+  --brand-red: #c8102e;        /* MC RED      */
+  --brand-black: #231f20;      /* BLACK       */
+  --brand-dark-gray: #54585a;  /* DARK GRAY   */
+  --brand-yellow: #ffd200;     /* YELLOW      */
+  --brand-green: #81bc00;      /* GREEN       */
+  --brand-dark-green: #56803a; /* DARK GREEN  */
+  --brand-teal: #00afaa;       /* TEAL        */
+  --brand-midnight: #005776;   /* MIDNIGHT    */
+  --brand-terracotta: #db8321; /* TERRACOTTA  */
+  --brand-ochre: #cba82c;      /* OCHRE       */
+  --brand-meadow: #e0e721;     /* MEADOW      */
+  --brand-apricot: #f8d7b1;    /* APRICOT     */
 
-  /* Case-count ramp: MC 5-class YlOrRd.
-     Breaks 1–4 / 5–10 / 11–21 / 22–44 / 45+. The web legend's top class is
-     open-ended; the daily static map may print the true max (e.g. 45–1654).
-     Mirrored in config/portal.agol.yaml -> cartography.case_choropleth.breaks;
-     change both together.
-     TODO replace with the exact hexes from the ArcGIS Pro .stylx / CIM. */
-  --mc-case-1: #fdd835;   /*  1–4   */
-  --mc-case-2: #fdae61;   /*  5–10  */
-  --mc-case-3: #f16913;   /* 11–21  */
-  --mc-case-4: #d7301f;   /* 22–44  */
-  --mc-case-5: #b10026;   /* 45+    */
+  /* -- Typography --------------------------------------------------------- */
+  /* Style-guide text hierarchy: Map Title = Merriweather Bold; Body Copy =
+     Merriweather Regular; Data Labels + Legend = League Spartan. Note the
+     titles are the SERIF -- League Spartan is the label face, not the display
+     face. The guide also specifies Bebas Neue Bold for page sub-headers; not
+     loaded here, since a web map has no page sub-header. */
+  --brand-font-title: "Merriweather", Georgia, "Times New Roman", serif;
+  --brand-font-body: "Merriweather", Georgia, "Times New Roman", serif;
+  --brand-font-label: "League Spartan", "Trebuchet MS", sans-serif;
 
-  /* Non-data fills. Unaffected zones carry NULL, not 0, so "no cases yet"
-     never reads as a confirmed zero — the two get different fills. */
-  --mc-unaffected: #e3e0dc;
-  --mc-zero: #ffffff;
-  --mc-water: #cfe3ec;
+  /* -- Case-count ramp ---------------------------------------------------- */
+  /* Five classes, 1–4 / 5–10 / 11–21 / 22–44 / 45+. Sampled from the legend
+     of the published static map; both endpoints land exactly on style-guide
+     brand colours, with three interpolated steps between:
+        YELLOW #FFD200 -> ... -> MC RED #C8102E
+     The web legend's top class is open-ended; the static map prints the true
+     max (e.g. 45–1728). Mirrored in config/portal.agol.yaml ->
+     cartography.case_choropleth.breaks; change both together. */
+  --brand-case-1: #ffd200;   /*  1–4   = YELLOW        */
+  --brand-case-2: #f28d07;   /*  5–10                  */
+  --brand-case-3: #e4510b;   /* 11–21                  */
+  --brand-case-4: #d71e0c;   /* 22–44                  */
+  --brand-case-5: #c8102e;   /* 45+    = MC RED        */
 
-  /* Program overlays — outlines only, never fills, so the choropleth reads
-     through. Named separately from --green even where the value matches. */
-  --mc-reset-outline: #2e7d32;   /* RESET  */
-  --mc-ierdc-outline: #00a6ce;   /* IERDC  */
+  /* -- Base map, per the style-guide's Base Map Colors -------------------- */
+  /* Unaffected zones carry NULL, not 0, so "no cases yet" never reads as a
+     confirmed zero — the two get different fills. */
+  --brand-unaffected: #e1e1e1;   /* zone in the focus area, no cases      */
+  --brand-zero: #ffffff;         /* a reported 0                          */
+  --brand-land-bg: #f8f8f8;      /* LAND Background — land outside focus  */
+  --brand-land-fg: #c2c2c2;      /* GRAY LAND Foreground                  */
+  --brand-land-focus: #54585a;   /* DARK GRAY LAND Focus Area             */
+  --brand-water: #ccf4ff;        /* LIGHT OCEAN                           */
 
-  /* Transmission tab: corridors + epicentre. */
-  --mc-corridor-1: #7b3294;
-  --mc-corridor-2: #008837;
-  --mc-corridor-3: #0571b0;
-  --mc-corridor-4: #ca0020;
-  --mc-corridor-5: #e66101;
-  --mc-corridor-6: #5e3c99;
-  --mc-corridor-width: 3px;
-  --mc-corridor-dash: 8 6;       /* cross-border / transit; roads stay solid */
-  --mc-epicentre: #000000;
-  --mc-epicentre-halo: #ffffff;
+  /* -- Boundaries. Style-guide: thick black for international borders,
+        thin dark grey for internal ones. ----------------------------------- */
+  --brand-border-international: #231f20;
+  --brand-border-internal: #54585a;
+  /* Our province ring. NOT --province-outline: that token is locked to the
+     engine.js fallback. Switching the map over means editing the CSS token
+     and engine.js together — see the file header. */
+  --brand-province-outline: #54585a;
 
-  /* MC province ring. NOT --province-outline: that token is locked to the
-     engine.js fallback. Switching the map over to this value means editing the
-     CSS token and engine.js together — see the file header. */
-  --mc-province-outline: #4a4a4a;
+  /* -- Program overlays: thick coloured outline, no fill, per the guide's
+        "Proposed Area" convention. Sampled from the static map. ----------- */
+  --brand-reset-outline: #81bc00;   /* RESET  = brand GREEN   */
+  --brand-ierdc-outline: #00aed8;   /* IERDC  = cyan; the one overlay colour
+                                       with no style-guide equivalent, carried
+                                       over from the static map for continuity */
+
+  /* -- Corridors (Transmission tab) --------------------------------------- */
+  /* Drawn from the style-guide's qualitative palette, but NOT in its
+     documented 1–8 order. That order leads with GREEN and YELLOW, and YELLOW
+     #FFD200 / TERRACOTTA #DB8321 are the case ramp's own hues — a corridor in
+     either disappears into the choropleth it crosses. So the cool and green
+     end comes first, and brand GREEN is held back for the RESET outline. The
+     guide allows this: the qualitative palette "can be adapted as needed".
+     MEADOW sits last because it is the nearest of these to the ramp. */
+  --brand-corridor-1: #005776;   /* MIDNIGHT    */
+  --brand-corridor-2: #00afaa;   /* TEAL        */
+  --brand-corridor-3: #56803a;   /* DARK GREEN  */
+  --brand-corridor-4: #cba82c;   /* OCHRE       */
+  --brand-corridor-5: #db8321;   /* TERRACOTTA  */
+  --brand-corridor-6: #e0e721;   /* MEADOW      */
+  --brand-corridor-width: 3px;
+  --brand-corridor-dash: 8 6;    /* cross-border / transit; roads stay solid */
+
+  --brand-epicentre: #231f20;
+  --brand-epicentre-halo: #ffffff;
 }
 
 /* --------------------------------------------------------------------------
-   3. Typography. Upstream sets one system stack on body; MC is Merriweather
-      for text and League Spartan for display.
+   3. Typography, per the style-guide text hierarchy.
    -------------------------------------------------------------------------- */
 body {
-  font-family: var(--mc-font-serif);
+  font-family: var(--brand-font-body);
+  color: var(--ink);
 }
 
+/* Map Title: Merriweather Bold, Title Case, MC RED. */
 h1, h2, h3, h4,
-.mc-title,
-.mc-legend-title {
-  font-family: var(--mc-font-display);
+.mc-title {
+  font-family: var(--brand-font-title);
   font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
-h1, h2, .mc-title { color: var(--mc-red); }
+h1, h2, .mc-title { color: var(--brand-red); }
 
-/* Italic serif source line, per house style. */
+/* Source Attribution: small, legible, italic serif — matches the static map's
+   "Source: RDC Institut National de Santé Publique" line. */
 .mc-source,
 .mc-caption {
-  font-family: var(--mc-font-serif);
+  font-family: var(--brand-font-body);
   font-style: italic;
   font-size: 11.5px;
   color: var(--muted);
+}
+
+/* Data labels on the map: League Spartan. Country/region labels upper case,
+   place labels title case, per the hierarchy table. */
+.mc-map-label {
+  font-family: var(--brand-font-label);
+  font-weight: 500;
+  color: var(--brand-black);
+}
+
+.mc-map-label--admin {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mc-map-label--place { font-weight: 300; }
+
+.mc-map-label--water {
+  font-weight: 300;
+  font-style: italic;
+  color: var(--brand-midnight);
 }
 
 /* --------------------------------------------------------------------------
    4. Choropleth bins. The Leaflet style function sets fills from the portal
       profile; these classes keep legend swatches and polygons on one source.
    -------------------------------------------------------------------------- */
-.mc-bin-1 { --mc-bin: var(--mc-case-1); }
-.mc-bin-2 { --mc-bin: var(--mc-case-2); }
-.mc-bin-3 { --mc-bin: var(--mc-case-3); }
-.mc-bin-4 { --mc-bin: var(--mc-case-4); }
-.mc-bin-5 { --mc-bin: var(--mc-case-5); }
-.mc-bin-null { --mc-bin: var(--mc-unaffected); }
-.mc-bin-zero { --mc-bin: var(--mc-zero); }
+.mc-bin-1 { --mc-bin: var(--brand-case-1); }
+.mc-bin-2 { --mc-bin: var(--brand-case-2); }
+.mc-bin-3 { --mc-bin: var(--brand-case-3); }
+.mc-bin-4 { --mc-bin: var(--brand-case-4); }
+.mc-bin-5 { --mc-bin: var(--brand-case-5); }
+.mc-bin-null { --mc-bin: var(--brand-unaffected); }
+.mc-bin-zero { --mc-bin: var(--brand-zero); }
 
-.mc-water { fill: var(--mc-water); stroke: none; }
+.mc-water { fill: var(--brand-water); stroke: none; }
 
-/* Program overlays: stroke only, no fill. */
+/* Program overlays: stroke only, no fill, so the choropleth reads through. */
 .mc-overlay-reset {
   fill: none;
-  stroke: var(--mc-reset-outline);
+  stroke: var(--brand-reset-outline);
   stroke-width: 2;
 }
 
 .mc-overlay-ierdc {
   fill: none;
-  stroke: var(--mc-ierdc-outline);
+  stroke: var(--brand-ierdc-outline);
   stroke-width: 2;
   stroke-dasharray: 6 4;
 }
@@ -797,39 +870,39 @@ h1, h2, .mc-title { color: var(--mc-red); }
    -------------------------------------------------------------------------- */
 .mc-corridor {
   fill: none;
-  stroke-width: var(--mc-corridor-width);
+  stroke-width: var(--brand-corridor-width);
   stroke-linecap: round;
 }
 
 /* Dashed = cross-border / transit. Solid = national roads (RN4, RN25). */
-.mc-corridor--dashed { stroke-dasharray: var(--mc-corridor-dash); }
+.mc-corridor--dashed { stroke-dasharray: var(--brand-corridor-dash); }
 .mc-corridor--solid { stroke-dasharray: none; }
 
-.mc-corridor-1 { stroke: var(--mc-corridor-1); }
-.mc-corridor-2 { stroke: var(--mc-corridor-2); }
-.mc-corridor-3 { stroke: var(--mc-corridor-3); }
-.mc-corridor-4 { stroke: var(--mc-corridor-4); }
-.mc-corridor-5 { stroke: var(--mc-corridor-5); }
-.mc-corridor-6 { stroke: var(--mc-corridor-6); }
+.mc-corridor-1 { stroke: var(--brand-corridor-1); }
+.mc-corridor-2 { stroke: var(--brand-corridor-2); }
+.mc-corridor-3 { stroke: var(--brand-corridor-3); }
+.mc-corridor-4 { stroke: var(--brand-corridor-4); }
+.mc-corridor-5 { stroke: var(--brand-corridor-5); }
+.mc-corridor-6 { stroke: var(--brand-corridor-6); }
 
 /* Arrowheads come from Leaflet-PolylineDecorator; they inherit the line hue. */
 .mc-corridor-arrow { fill: none; stroke-width: 2; }
 
 /* Epicentre: black asterisk with a halo so it survives a dark choropleth. */
 .mc-epicentre {
-  font-family: var(--mc-font-display);
+  font-family: var(--brand-font-label);
   font-size: 16px;
   line-height: 1;
-  color: var(--mc-epicentre);
+  color: var(--brand-epicentre);
   text-shadow:
-     1px  1px 0 var(--mc-epicentre-halo),
-    -1px  1px 0 var(--mc-epicentre-halo),
-     1px -1px 0 var(--mc-epicentre-halo),
-    -1px -1px 0 var(--mc-epicentre-halo);
+     1px  1px 0 var(--brand-epicentre-halo),
+    -1px  1px 0 var(--brand-epicentre-halo),
+     1px -1px 0 var(--brand-epicentre-halo),
+    -1px -1px 0 var(--brand-epicentre-halo);
 }
 
 .mc-timeslider {
-  font-family: var(--mc-font-display);
+  font-family: var(--brand-font-label);
   font-size: 13px;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--border);
@@ -837,14 +910,36 @@ h1, h2, .mc-title { color: var(--mc-red); }
   padding: 8px 12px;
 }
 
-.mc-timeslider input[type="range"] { accent-color: var(--mc-red); width: 100%; }
+.mc-timeslider input[type="range"] { accent-color: var(--brand-red); width: 100%; }
 .mc-timeslider-label { color: var(--ink); font-weight: 600; }
 /* Marks a step standing in for a gap in the series (day 84 -> 4 Aug, day 82). */
 .mc-timeslider-gap { color: var(--muted); font-style: italic; }
 
 /* --------------------------------------------------------------------------
-   6. Legend additions for the MC ramp.
+   6. Legend. Style-guide: header in League Spartan Medium upper case, copy in
+      League Spartan sentence case, no "Legend" title, translucent backdrop
+      rather than a stark box.
    -------------------------------------------------------------------------- */
+.mc-legend {
+  font-family: var(--brand-font-label);
+  font-size: 11.5px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+
+.mc-legend-title {
+  font-family: var(--brand-font-label);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
 .mc-legend-row {
   display: flex;
   align-items: center;
@@ -856,7 +951,7 @@ h1, h2, .mc-title { color: var(--mc-red); }
   width: 16px;
   height: 12px;
   flex: 0 0 auto;
-  background: var(--mc-bin, var(--mc-unaffected));
+  background: var(--mc-bin, var(--brand-unaffected));
   border: 1px solid rgba(0, 0, 0, 0.22);
 }
 

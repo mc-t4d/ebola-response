@@ -151,24 +151,28 @@ layers:
 # ---------------------------------------------------------------------------
 # Cartography — house style. Single source of truth for class breaks.
 # ---------------------------------------------------------------------------
-# Hexes mirror Data/Branding/dashboard-theme.css (--mc-case-1..5). Keep the two
-# in sync; the CSS is for static rules, this block is what the Leaflet style
-# function reads. TODO: replace placeholders with exact values from the Pro
-# .stylx / CIM (PROJECT_BRIEF §4).
+# Values follow the T4D Cartographic Style-Guide (Final, 05/25). Hexes mirror
+# the --brand-* tokens in Data/Branding/dashboard-theme.css; keep the two in
+# sync — the CSS serves static rules, this block is what the Leaflet style
+# function reads.
 cartography:
   case_choropleth:
-    # 5-class YlOrRd. Web uses an open-ended top class; the daily static map
-    # may print the true max (e.g. 45-1654).
+    # Sampled from the published daily static map's legend, so web and print
+    # show the same five classes. Both endpoints are exact style-guide brand
+    # colours, with three interpolated steps between:
+    #   YELLOW #FFD200 -> ... -> MC RED #C8102E
+    # Web uses an open-ended top class; the static map prints the true max
+    # (e.g. 45-1728).
     scale: threshold          # explicit breaks, not the INSP log scale
     breaks:
-      - {min: 1,  max: 4,    color: "#FDD835", label_en: "1–4",  label_fr: "1–4"}
-      - {min: 5,  max: 10,   color: "#FDAE61", label_en: "5–10", label_fr: "5–10"}
-      - {min: 11, max: 21,   color: "#F16913", label_en: "11–21", label_fr: "11–21"}
-      - {min: 22, max: 44,   color: "#D7301F", label_en: "22–44", label_fr: "22–44"}
-      - {min: 45, max: null, color: "#B10026", label_en: "45+",  label_fr: "45+"}
+      - {min: 1,  max: 4,    color: "#FFD200", label_en: "1–4",   label_fr: "1–4"}
+      - {min: 5,  max: 10,   color: "#F28D07", label_en: "5–10",  label_fr: "5–10"}
+      - {min: 11, max: 21,   color: "#E4510B", label_en: "11–21", label_fr: "11–21"}
+      - {min: 22, max: 44,   color: "#D71E0C", label_en: "22–44", label_fr: "22–44"}
+      - {min: 45, max: null, color: "#C8102E", label_en: "45+",   label_fr: "45+"}
     # Zones with no cases yet are NULL, not 0 — "not reached" must stay visually
-    # distinct from a confirmed zero.
-    null_color: "#E3E0DC"
+    # distinct from a confirmed zero. Grey is the style-guide's land shading.
+    null_color: "#E1E1E1"
     null_label_en: "No cases reported"
     null_label_fr: "Aucun cas signalé"
     zero_color: "#FFFFFF"
@@ -176,15 +180,31 @@ cartography:
     outline_width: 0.5
     opacity: 0.85
 
+  # Base map, per the style-guide's Base Map Colors.
+  base:
+    land_background: "#F8F8F8"   # LAND Background — land outside the focus area
+    land_foreground: "#C2C2C2"   # GRAY LAND Foreground
+    land_focus: "#54585A"        # DARK GRAY LAND Focus Area
+    water: "#CCF4FF"             # LIGHT OCEAN
+    border_international: "#231F20"  # thick black — recognized borders
+    border_internal: "#54585A"       # thin dark grey — domestic boundaries
+
   corridors:
     # Categorical per corridor; dash pattern by route kind.
+    #
+    # From the style-guide's qualitative palette, but NOT in its documented 1–8
+    # order: that order leads with GREEN and YELLOW, and YELLOW #FFD200 /
+    # TERRACOTTA #DB8321 are the case ramp's own hues — a corridor in either
+    # vanishes into the choropleth it crosses. Cool and green hues come first,
+    # and brand GREEN is held back for the RESET outline. The guide permits
+    # this: the qualitative palette "can be adapted as needed".
     palette:
-      - "#7B3294"
-      - "#008837"
-      - "#0571B0"
-      - "#CA0020"
-      - "#E66101"
-      - "#5E3C99"
+      - "#005776"   # MIDNIGHT
+      - "#00AFAA"   # TEAL
+      - "#56803A"   # DARK GREEN
+      - "#CBA82C"   # OCHRE
+      - "#DB8321"   # TERRACOTTA
+      - "#E0E721"   # MEADOW — nearest of these to the ramp, so last
     width: 3
     dash:
       cross_border: "8 6"
@@ -199,20 +219,25 @@ cartography:
       arrow_polygon: false
 
   epicentre:
-    # Black asterisk marker.
+    # Black asterisk marker. Style-guide BLACK rather than pure #000000.
     symbol: asterisk
-    color: "#000000"
+    color: "#231F20"
     size: 16
     halo: "#FFFFFF"
     halo_width: 2
 
   program_overlays:
-    # Outlines only — no fill, so the case choropleth reads through.
-    reset:  {color: "#2E7D32", width: 2, fill: false, dash: null}
-    ierdc:  {color: "#00A6CE", width: 2, fill: false, dash: "6 4"}
+    # Thick coloured outline, no fill, per the style-guide's "Proposed Area"
+    # convention, so the case choropleth reads through. Sampled from the
+    # static map's legend.
+    reset:  {color: "#81BC00", width: 2, fill: false, dash: null}   # brand GREEN
+    # IERDC cyan is the one overlay colour with no style-guide equivalent;
+    # carried over from the static map for continuity with the print series.
+    ierdc:  {color: "#00AED8", width: 2, fill: false, dash: "6 4"}
 
   province_boundaries:
-    color: "#4A4A4A"
+    # Style-guide: thin dark grey for domestic/internal boundaries.
+    color: "#54585A"
     width: 1.2
     fill: false
 
