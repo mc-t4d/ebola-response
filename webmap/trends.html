@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — epidemiological trends</title>
+<title>DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard — daily trend</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="css/dashboard.css" />
@@ -55,8 +55,9 @@
 </header>
 <nav id="page-tabs">
   <div id="view-tabs" class="view-tabs">
-      <a href="index.html" class="view-tab" data-view="map" data-i18n="ui.view_map">Current Snapshot</a>
-      <a href="trends.html" class="view-tab active" data-view="trends" data-i18n="ui.view_trends">Epidemiological Trends</a>
+      <a href="index.html" class="view-tab" data-view="map" data-i18n="ui.view_map">Current Cumulative</a>
+      <a href="trends.html" class="view-tab active" data-view="trends" data-i18n="ui.view_trends">Daily Trend</a>
+      <a href="trend21.html" class="view-tab" data-view="trend21" data-i18n="ui.view_trend21">21-Day Trend</a>
   </div>
 </nav>
 <!-- .sheet-head / .sheet-body is what keeps the dialog still while its content
@@ -90,27 +91,6 @@
 </div>
 <div id="viewport-area">
 <div id="map"></div>
-<!-- Standalone health-zone search: ONE node serving every view, a sibling of
-     #map so it is never trapped inside a panel or rail. dashboard.css
-     positions it per body.view-* across three width bands; engine.js's
-     ZONE_SEARCH_VIEWS table supplies each view's index filter, i18n keys and
-     select() action. Replaces the three separate boxes that used to live in
-     #controls, #trends-controls and .epi-controls.
-
-     #zone-search-results holds ONLY options (it is a listbox); the
-     no-matches message is #zone-search-empty, a sibling shown in its place;
-     #zone-search-live is announcement-only. -->
-<div id="zone-search">
-  <input type="search" id="zone-search-input" autocomplete="off" spellcheck="false"
-         role="combobox" aria-autocomplete="list" aria-controls="zone-search-results"
-         aria-expanded="false" aria-activedescendant=""
-         data-i18n-placeholder="ui.zone_search_placeholder"
-         placeholder="Type a health zone name…"
-         data-i18n-aria="ui.zone_search" aria-label="Search health zone" />
-  <div id="zone-search-results" role="listbox" hidden></div>
-  <div id="zone-search-empty" hidden></div>
-  <div id="zone-search-live" role="status" aria-live="polite" class="visually-hidden"></div>
-</div>
 <div id="context-hint" data-i18n="ui.hints.context">Click a health zone to see response context</div>
 <div id="travel-hint" data-i18n="ui.hints.travel">Click a health zone to set travel origin (double-click to zoom)</div>
 <div id="flow-hint" data-i18n="ui.hints.flow">Click a health zone to show movement flows (double-click to zoom)</div>
@@ -147,6 +127,7 @@
     <div class="legend-classes" id="legend-classes" style="display:none"></div>
     <div class="legend-scale" id="legend-scale"></div>
     <div class="u-3" id="legend-gray"></div>
+    <div class="legend-classes" id="legend-programs"></div>
   </div>
 </div>
 <div id="trends-legend" class="panel">
@@ -177,19 +158,11 @@
   </div>
   <span id="trends-date-label" data-i18n="ui.trends_as_of">As of —</span>
 </div>
-<div id="info" class="panel">
-  <div id="info-header">
-    <strong data-i18n="ui.zone">Zone</strong>
-    <button id="info-toggle" type="button" data-i18n-aria="ui.aria.toggle_zone" data-i18n-title="ui.aria.collapse_zone" aria-label="Toggle zone details" title="Collapse / expand zone details">−</button>
-  </div>
-  <div id="info-body" class="info-empty" data-i18n="ui.hover_zone">Select a health zone.</div>
-</div>
 <div id="view-switcher">
   <div id="footer-links">
     <button id="methods-btn" class="link-btn" type="button" data-i18n="ui.methods_btn">Contributors, Data, and Methods</button>
     <button id="terms-btn"   class="link-btn" type="button" data-i18n="ui.terms_btn">Terms of Use</button>
   </div>
-  <div id="partners"></div>
 </div>
 <div id="epi-split-handle" role="separator" aria-orientation="vertical"
      data-i18n-aria="ui.aria.epi_split" aria-label="Resize map and table panels"
@@ -360,7 +333,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/payload.js"></script>
-<script src="js/engine.js"></script>
+<script src="js/daily.js"></script>
 
 </body>
 </html>

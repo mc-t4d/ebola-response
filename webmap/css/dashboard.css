@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400;1,700&display=swap");
   html, body { margin:0; padding:0; height:100%; font-family: -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif; background:#111; color:#eee; }
   body { display:flex; flex-direction:column; }
   :root {
@@ -2258,7 +2258,7 @@ body.trends-splitting #trends-split-handle::before {
   /* Style-guide text hierarchy: Map Title = Merriweather Bold; Body Copy =
      Merriweather Regular; Data Labels + Legend = League Spartan. Note the
      titles are the SERIF -- League Spartan is the label face, not the display
-     face. The guide also specifies Bebas Neue Bold for page sub-headers; not
+     face. The guide also specifies a display face for page sub-headers; League Spartan stands in (see section 8); not
      loaded here, since a web map has no page sub-header. */
   --brand-font-title: "Merriweather", Georgia, "Times New Roman", serif;
   --brand-font-body: "Merriweather", Georgia, "Times New Roman", serif;
@@ -2551,4 +2551,100 @@ h1, h2, .mc-title { color: var(--brand-red); }
 
 @media (prefers-reduced-motion: reduce) {
   .mc-timeslider * { transition-duration: 0.01ms !important; }
+}
+
+
+/* ==========================================================================
+   8. STATIC-MAP STYLE MATCH (6 October, Day 145 reference map)
+   Esri Light Gray basemap, Mercy Corps palette, and the three-family type
+   system: Merriweather (titles, body, source), League Spartan (legend, data
+   labels, panel sub-headers, tabs).
+   ========================================================================== */
+:root {
+  --brand-font-display: "League Spartan", "Trebuchet MS", sans-serif;
+
+  /* Thin dark-grey internal borders, as on the static map (CARTO-era values
+     were off-white hairlines that vanish on the grey Esri canvas). */
+  --zone-stroke: #54585a;
+  --zone-stroke-opacity: 0.85;
+  --zone-hover-stroke: #231f20;
+  --zone-nodata-stroke: #54585a;
+  --zone-nodata-stroke-opacity: 0.6;
+  --province-outline: #231f20;
+  --province-outline-weight: 1.4;
+}
+
+.leaflet-container { background: var(--brand-land-bg); font-family: var(--brand-font-label); }
+.leaflet-control-attribution { font-family: var(--brand-font-label); font-size: 10px; }
+
+/* Map title: Merriweather italic, black, centred -- "6 October (Day 145)". */
+#site-header h1#page-heading {
+  font-family: var(--brand-font-title);
+  font-style: normal;
+  font-weight: 700;
+  color: var(--brand-black) !important;
+  letter-spacing: 0;
+}
+
+/* Panel sub-headers: League Spartan. */
+.panel-header strong,
+#info-header strong,
+#trends-title,
+.modal h2,
+#epi-trends-title {
+  font-family: var(--brand-font-display);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-black);
+}
+
+/* Legend: League Spartan, sentence case title ("Affected Health Zone with
+   Case Numbers"), larger square swatches. */
+#legend-title strong {
+  font-family: var(--brand-font-label);
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--brand-black);
+}
+#legend, #legend .panel-body, .legend-class-row, .legend-class-label, .legend-ticks, .legend-scale {
+  font-family: var(--brand-font-label);
+}
+.legend-class-row { font-size: 12px; gap: 8px; }
+.legend-class-row .swatch { width: 26px; height: 16px; }
+
+/* Tabs and footer links. */
+.view-tab {
+  font-family: var(--brand-font-display);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#footer-links .link-btn { font-family: var(--brand-font-label); }
+
+/* Tracker: case count in brand YELLOW (dark hairline so it reads on white),
+   recovered in blue. */
+#tracker .global-cell.cases .num {
+  color: var(--brand-yellow) !important;
+  text-shadow: 0 0 1px rgba(35, 31, 32, 0.55), 0 1px 0 rgba(35, 31, 32, 0.25);
+}
+#tracker .global-cell.recovered .num { color: var(--brand-midnight) !important; }
+
+/* Programme-area legend swatches are outlines, not fills. */
+.program-swatch { box-sizing: border-box; height: 14px; }
+
+/* Daily Trend / 21-Day Trend pages: map only -- no plots sidebar or split handle.
+   The width variable is zeroed on <body> so the map, legend and zone-search
+   offsets that read it collapse with it (preload.js sets it on <html>, which
+   this inner declaration overrides). */
+body.view-trends { --trends-panel-width: 0px !important; }
+body.view-trends #trends-panel,
+body.view-trends #trends-split-handle { display: none !important; }
+body.view-trends #map {
+  top: 0 !important; right: 0 !important; left: 0 !important;
+  bottom: var(--view-chrome-height) !important; height: auto !important;
 }

@@ -499,36 +499,6 @@ function buildModeledEstimateNote() {
   }
 })();
 
-// --- partners strip ---
-// The strip carries no bounding box under the theme, so the gaps are what
-// group the logos: .partner-group holds one affiliation (tight gap), #partners
-// spaces the groups apart (wide gap). Each logo also carries its own scale
-// factor on --partner-h -- see PARTNER_GROUPS/PARTNER_SCALE in
-// common/data_sources.py for both, and the design spec for why.
-(function buildPartners() {
-  const partners = PAYLOAD.partners || [];
-  const root = document.getElementById("partners");
-  if (!partners.length || !root) { if (root) root.style.display="none"; return; }
-  let html = "";
-  let openGroup = null;
-  partners.forEach(function(p) {
-    const group = p.group || 0;
-    if (group !== openGroup) {
-      if (openGroup !== null) html += "</span>";
-      html += "<span class='partner-group'>";
-      openGroup = group;
-    }
-    const scale = p.scale || 1;
-    const img = "<img src='" + p.data_uri + "' alt='" + p.alt + "' title='" + p.alt + "' " +
-      "style='height:calc(var(--partner-h) * " + scale + ")' />";
-    html += p.href
-      ? "<a href='" + p.href + "' target='_blank' rel='noopener'>" + img + "</a>"
-      : img;
-  });
-  if (openGroup !== null) html += "</span>";
-  root.innerHTML = html;
-})();
-
 const layerSelect = document.getElementById("layer-select");
 const layerMeta = document.getElementById("layer-meta");
 
@@ -664,32 +634,10 @@ const INITIAL_VIEW = PAYLOAD.initial_view || {lat: -2.5, lon: 22.5, zoom: 5};
 // LAYER panel, and every view either relocates a search box into that corner
 // or expects touch users to pinch-zoom. Zoom via wheel/pinch/double-click.
 const map = L.map("map", {zoomControl: false}).setView([INITIAL_VIEW.lat, INITIAL_VIEW.lon], INITIAL_VIEW.zoom);
-// CARTO's raster basemaps require an API key as of 2026. Without one the tiles
-// still render, but under a repeated "API key required" watermark -- a notice,
-// not an outage, so a keyless build degrades rather than breaking.
-//
-// The key is a public client-side credential, not a secret: it is served in
-// this file to every visitor by design (the quota is per-key fair use, 5M
-// tiles/month, and CARTO's terms only require that the attribution below stays
-// visible). It is nonetheless substituted at build time from CARTO_BASEMAP_KEY
-// rather than committed here, so it lives in exactly one place and can be
-// rotated without a source change. See README "CARTO basemap key".
-//
-// The placeholder deliberately contains braces so it fails the character test
-// below: an unsubstituted build therefore sends no `key` parameter at all
-// instead of a literal "". The same test rejects a
-// malformed injected value, which is what keeps a stray quote in the
-// environment from breaking out of this string literal.
-//
-// NOTE: CARTO is retiring these raster tiles in favour of vector basemaps
-// (light_all -> positron-gl-style). That migration means Leaflet -> MapLibre
-// and is tracked separately; the key applies either way.
-const CARTO_KEY = "";
-const CARTO_TILES = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-  + (/^[A-Za-z0-9_-]+$/.test(CARTO_KEY) ? "?key=" + encodeURIComponent(CARTO_KEY) : "");
-L.tileLayer(CARTO_TILES, {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: "abcd", maxZoom: 19
+// Basemap: Esri World Light Gray Canvas (no API key required).
+var Esri_WorldGrayCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+	maxZoom: 16
 }).addTo(map);
 
 // Zone borders read as hairlines at the national default zoom (many small
@@ -1871,6 +1819,11 @@ function styleFn(feature) {
     return prov(Object.assign({}, zoneStroke("rest"), zoneFillStyle(v, has, ref, layer, true)));
   }
   if (!has) {
+    // Classed layers paint "no cases reported" in the layer's null colour
+    // (light grey, per the house style) instead of leaving the zone see-through.
+    if (layer && layerIsClassed(layer)) {
+      return prov(Object.assign({}, zoneStroke("nodata"), zoneFillStyle(v, has, ref, layer, false)));
+    }
     return prov(Object.assign({}, zoneStroke("nodata"), {fillOpacity: 0}));
   }
   return prov(Object.assign({}, zoneStroke("rest"), zoneFillStyle(v, has, ref, layer, false)));
@@ -2856,6 +2809,63 @@ const provinceOutlineLayer = L.geoJSON(PAYLOAD.province_boundaries || {type:"Fea
   },
 });
 
+// --- GRID3 country border + programme areas ---------------------------------
+// Country border: thick black international line, no fill (static-map style).
+map.createPane("country-outline");
+map.getPane("country-outline").style.zIndex = 552;
+L.geoJSON(PAYLOAD.country_boundary || {type:"FeatureCollection", features:[]}, {
+  pane: "country-outline",
+  interactive: false,
+  style: function() {
+    return {color: themeVar("--brand-border-international", "#231f20"), weight: 2.2, opacity: 1, fillOpacity: 0};
+  }
+}).addTo(map);
+
+// Programme areas: coloured outlines, never fills, so the choropleth reads
+// through. RESET = green, IERDC = cyan, SAFER = black dashed.
+const PROGRAM_STYLES = {
+  RESET: {var: "--brand-reset-outline", fallback: "#81bc00", label: "RESET"},
+  IERDC: {var: "--brand-ierdc-outline", fallback: "#00aed8", label: "IERDC"},
+  SAFER: {var: "--brand-black", fallback: "#231f20", label: "SAFER"}
+};
+map.createPane("program-outline");
+map.getPane("program-outline").style.zIndex = 548;
+const programLayer = L.geoJSON(PAYLOAD.program_areas || {type:"FeatureCollection", features:[]}, {
+  pane: "program-outline",
+  interactive: false,
+  style: function(feature) {
+    const s = PROGRAM_STYLES[feature.properties.program];
+    return {color: s ? themeVar(s.var, s.fallback) : "#231f20", weight: 3, opacity: 1, fillOpacity: 0,
+            dashArray: feature.properties.program === "SAFER" ? "6 4" : null};
+  }
+}).addTo(map);
+// "Show programme areas" checkbox (the only control in the Layer card).
+(function wireProgrammeToggle() {
+  const box = document.getElementById("show-programmes");
+  const legendRows = function() { return document.getElementById("legend-programs"); };
+  function apply() {
+    const on = !box || box.checked;
+    if (on && !map.hasLayer(programLayer)) programLayer.addTo(map);
+    if (!on && map.hasLayer(programLayer)) map.removeLayer(programLayer);
+    const lg = legendRows();
+    if (lg) lg.style.display = on ? "" : "none";
+  }
+  if (box) box.addEventListener("change", apply);
+  apply();
+})();
+(function buildProgramLegend() {
+  const root = document.getElementById("legend-programs");
+  const present = {};
+  ((PAYLOAD.program_areas || {}).features || []).forEach(function(f) { present[f.properties.program] = true; });
+  if (!root || !Object.keys(present).length) return;
+  root.innerHTML = Object.keys(PROGRAM_STYLES).filter(function(k) { return present[k]; }).map(function(k) {
+    const s = PROGRAM_STYLES[k];
+    return "<div class='legend-class-row'><span class='swatch program-swatch' style='border:3px solid " +
+      themeVar(s.var, s.fallback) + ";background:transparent'></span>" +
+      "<span class='legend-class-label'>" + s.label + " programme area</span></div>";
+  }).join("");
+})();
+
 // 560: above the province outlines (550). Province rings are NOT zoom-scaled --
 // they multiply the province resting weight, which is fixed.
 const provinceRings = SelectionRing("province-selection", 560, function () {
@@ -3549,7 +3559,8 @@ let trendsDateIdx = 0;
 let trendsSliderTimer = null;
 let trendsSliderAnimating = false;
 let trendsSliderPointerDown = false;
-const TRENDS_SLIDER_STEP_MS = 150;
+// 21-Day Trend (data-slider-step="21") has ~8 frames, so each is held longer.
+const TRENDS_SLIDER_STEP_MS = (parseInt(document.body.dataset.sliderStep || "1", 10) || 1) > 1 ? 900 : 150;
 
 function setTrendsSliderBusy(busy) {
   document.body.classList.toggle("trends-slider-busy", !!busy);
@@ -3820,7 +3831,9 @@ function setActiveView(view) {
   document.body.classList.toggle("view-context", view === "context");
   syncMatrixUi();
   document.querySelectorAll(".view-tab").forEach(function(btn) {
-    btn.classList.toggle("active", btn.dataset.view === view);
+    // <body data-tab="..."> lets two pages share one engine view (Daily Trend
+    // and 21-Day Trend are both the "trends" view) yet highlight their own tab.
+    btn.classList.toggle("active", btn.dataset.view === (document.body.dataset.tab || view));
   });
   if (view === "epi-trends") {
     map.invalidateSize();
@@ -4567,7 +4580,7 @@ wireModal("terms-modal", ["terms-btn", "header-terms-btn"], "terms-close");
   buildTracker();
   buildModeledEstimateNote();
   updateLegalContent();
-  layerSelect.value = "obs::total";
+  layerSelect.value = "obs::confirmed";   // headline layer on this map
   applyMatrixOriginToLayers();
   rebuildLayerSelect();
   recompute();
