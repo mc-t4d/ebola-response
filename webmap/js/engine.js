@@ -536,6 +536,7 @@ function setLang(lang) {
   rebuildLayerSelect();
   recompute();
   syncMatrixUi();
+  if (document.getElementById("trends-class-legend")) initTrendsLegendBar();
   refreshMarkerTooltips();
   if (activeView === "trends") {
     updateTrendsDateLabel();
@@ -633,7 +634,12 @@ const INITIAL_VIEW = PAYLOAD.initial_view || {lat: -2.5, lon: 22.5, zoom: 5};
 // No on-map zoom control: the top-left corner it occupied collided with the
 // LAYER panel, and every view either relocates a search box into that corner
 // or expects touch users to pinch-zoom. Zoom via wheel/pinch/double-click.
-const map = L.map("map", {zoomControl: false}).setView([INITIAL_VIEW.lat, INITIAL_VIEW.lon], INITIAL_VIEW.zoom);
+// zoomSnap 0.25 so fitBounds can land on the framing of the reference map.
+const map = L.map("map", {zoomControl: false, zoomSnap: 0.25}).setView([INITIAL_VIEW.lat, INITIAL_VIEW.lon], INITIAL_VIEW.zoom);
+// All three maps open framed on the outbreak area: PAYLOAD.initial_bounds is
+// [[south, west], [north, east]], taken from the reference screenshot.
+if (PAYLOAD.initial_bounds) map.fitBounds(PAYLOAD.initial_bounds, {animate: false});
+window.dashboardMap = map;   // lets page add-ons (js/corridors.js) reach the map
 // Basemap: Esri World Light Gray Canvas (no API key required).
 var Esri_WorldGrayCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
 	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
@@ -2844,7 +2850,7 @@ const programLayer = L.geoJSON(PAYLOAD.program_areas || {type:"FeatureCollection
   const box = document.getElementById("show-programmes");
   const legendRows = function() { return document.getElementById("legend-programs"); };
   function apply() {
-    const on = !box || box.checked;
+    const on = !!box && box.checked;   // trend pages have no checkbox -> no programme outlines
     if (on && !map.hasLayer(programLayer)) programLayer.addTo(map);
     if (!on && map.hasLayer(programLayer)) map.removeLayer(programLayer);
     const lg = legendRows();
@@ -3580,12 +3586,70 @@ function stopTrendsSliderAnimation() {
   syncTrendsPlayButton();
 }
 
+// Ticks under the date slider. Few frames (21-Day Trend): one labelled tick per
+// frame. Many frames (Daily Trend): a faint tick every Monday and a labelled
+// tick at the first date of each month. Ticks are buttons: click = jump there.
+function buildTrendsTicks() {
+  const ts = PAYLOAD.confirmed_timeseries;
+  const wrap = document.getElementById("trends-ticks");
+  if (!wrap || !ts || !ts.dates || !ts.dates.length) return;
+  const n = ts.dates.length, lang = currentLang || "en";
+  const sparse = n <= 12;
+  const spacer = document.getElementById("trends-ticks-spacer");
+  const playBtn = document.getElementById("trends-play-btn");
+  const row = document.getElementById("trends-play-row");
+  if (spacer && playBtn && row) {
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 8;
+    spacer.style.width = (playBtn.offsetWidth + gap) + "px";
+  }
+  wrap.innerHTML = "";
+  let lastMonth = null;
+  ts.dates.forEach(function(iso, i) {
+    const dt = new Date(iso + "T00:00:00Z");
+    const month = dt.getUTCMonth();
+    const major = sparse || month !== lastMonth;
+    lastMonth = month;
+    if (!major && dt.getUTCDay() !== 1) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "trends-tick" + (major ? " major" : "");
+    b.style.left = (n > 1 ? (i / (n - 1)) * 100 : 0) + "%";
+    b.setAttribute("data-idx", String(i));
+    b.title = iso;
+    b.setAttribute("aria-label", iso);
+    if (major) {
+      const lab = document.createElement("span");
+      lab.className = "trends-tick-label";
+      lab.textContent = dt.toLocaleDateString(lang, sparse
+        ? {day: "numeric", month: "short", timeZone: "UTC"}
+        : {month: "short", timeZone: "UTC"});
+      b.appendChild(lab);
+    }
+    wrap.appendChild(b);
+  });
+  syncTrendsTicks();
+}
+
+function syncTrendsTicks() {
+  document.querySelectorAll(".trends-tick").forEach(function(b) {
+    b.classList.toggle("active", parseInt(b.getAttribute("data-idx"), 10) === trendsDateIdx);
+  });
+}
+
+document.addEventListener("click", function(ev) {
+  const b = ev.target.closest && ev.target.closest(".trends-tick");
+  if (!b || activeView !== "trends") return;
+  stopTrendsSliderAnimation();
+  applyTrendsDateIdx(parseInt(b.getAttribute("data-idx"), 10) || 0);
+});
+
 function applyTrendsDateIdx(idx) {
   const ts = PAYLOAD.confirmed_timeseries;
   const slider = document.getElementById("trends-date-slider");
   if (!ts || !ts.dates || !ts.dates.length) return;
   trendsDateIdx = Math.max(0, Math.min(idx, ts.dates.length - 1));
   if (slider) slider.value = String(trendsDateIdx);
+  syncTrendsTicks();
   updateTrendsDateLabel();
   recomputeTrendsMap();
 }
@@ -3636,6 +3700,23 @@ function initTrendsLegendBar() {
     stops.push(rgb(lerpColor(palette, t)) + " " + Math.round(t * 100) + "%");
   }
   bar.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
+  // The map paints confirmed cases in the layer's discrete classes, so the legend
+  // lists those classes (one swatch each) rather than a continuous gradient.
+  const classEl = document.getElementById("trends-class-legend");
+  if (classEl && layerIsClassed(layer)) {
+    const nullLbl = (layer["null_label_" + currentLang] || layer.null_label_en) || t("ui.legend.no_data");
+    classEl.innerHTML = layer.classes.map(function (c) {
+      return "<div class='legend-class-row'><span class='swatch' style='background:" + c.color + "'></span>" +
+        "<span class='legend-class-label'>" + classLabel(c) + "</span></div>";
+    }).join("") +
+      "<div class='legend-class-row'><span class='swatch' style='background:" +
+      (layer.null_color || CLASSED_NULL_FALLBACK) + "'></span><span class='legend-class-label'>" + nullLbl + "</span></div>";
+    classEl.style.display = "";
+    ["trends-legend-bar", "trends-legend-ticks", "trends-legend-scale"].forEach(function (id) {
+      const el = document.getElementById(id); if (el) el.style.display = "none";
+    });
+    return;
+  }
   const lo = ts.min_positive || 1;
   const hi = ts.max_confirmed || 1;
   const mid = Math.sqrt(lo * hi);
@@ -3757,11 +3838,14 @@ function enterTrendsView() {
   clearContextSelection();
   const ts = PAYLOAD.confirmed_timeseries;
   const legendPanel = document.getElementById("trends-legend");
+  const sliderPanel = document.getElementById("trends-slider");
   if (!ts || !ts.dates || !ts.dates.length) {
+    if (sliderPanel) sliderPanel.style.display = "none";
     if (legendPanel) legendPanel.style.display = "none";
     recompute();
   } else {
     if (legendPanel) legendPanel.style.display = "";
+    if (sliderPanel) sliderPanel.style.display = "";
     // Always enter in the cumulative view; the toggle opts into recency.
     trendsColorMode = "cumulative";
     const toggle = document.getElementById("trends-mode-toggle");
@@ -3770,6 +3854,7 @@ function enterTrendsView() {
     initTrendsLegendBar();
     const slider = document.getElementById("trends-date-slider");
     if (slider) slider.max = String(ts.dates.length - 1);
+    buildTrendsTicks();
     // Auto-play from the start every time the tab is opened, rather than
     // jumping straight to the latest sitrep and waiting for a manual Play click.
     playTrendsSliderAnimation();
@@ -4473,9 +4558,9 @@ if (!PAYLOAD.flow_arcs_available || !FLOW_ARC_LAYER) {
   }
 })();
 
-// Default: total cases layer, active-case markers ON, flow arcs ON from Mongbwalu.
-showCasesBox.checked = true;
-caseLayer.addTo(map);
+// Default: active-case dots OFF -- the map shows the main towns and the
+// epicentre icons from js/corridors.js instead (?cases=1 still opts back in).
+showCasesBox.checked = false;
 
 layerSelect.addEventListener("change", function() {
   // OSRM layers (travel time / road distance) render from the origin zone's

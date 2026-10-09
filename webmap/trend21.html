@@ -11,7 +11,7 @@
 <script src="js/preload.js"></script>
 </head>
 
-<body class="view-trends " data-initial-view="trends" data-tab="trend21" data-slider-step="21">
+<body class="view-trends " data-initial-view="trends" data-tab="trend21" data-slider-step="21" data-overlays="corridors towns epicentre">
 <header id="site-header">
   <div id="site-header-left">
     <h1 id="page-heading">DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard</h1>
@@ -138,6 +138,7 @@
   </div>
   <div id="trends-cumulative-legend">
     <p id="trends-legend-desc" data-i18n="ui.trends_legend_desc">Transcribed from INSP sitreps. Cases are sometimes revised downwards in consecutive sitreps.</p>
+    <div class="legend-classes" id="trends-class-legend"></div>
     <div class="legend-bar" id="trends-legend-bar"></div>
     <div class="legend-ticks" id="trends-legend-ticks"></div>
     <div class="legend-scale" id="trends-legend-scale" data-i18n="ui.trends_scale_log">(log scale)</div>
@@ -151,11 +152,14 @@
       <div class="recency-swatch"><span class="u-7 recency-chip"></span><span data-i18n="ui.trends_recency_cat4">No confirmed case</span></div>
     </div>
   </div>
+</div>
+<div id="trends-slider" class="panel">
   <div id="trends-play-row">
     <button type="button" id="trends-play-btn" data-i18n-aria="ui.trends_play" aria-label="Play">▶</button>
     <input type="range" id="trends-date-slider" min="0" max="0" value="0"
            data-i18n-aria="ui.trends_slider_aria" aria-label="SitRep date for confirmed cases map" />
   </div>
+  <div id="trends-ticks-row"><span id="trends-ticks-spacer"></span><div id="trends-ticks"></div></div>
   <span id="trends-date-label" data-i18n="ui.trends_as_of">As of —</span>
 </div>
 <div id="view-switcher">
@@ -332,7 +336,9 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <script src="js/payload.js"></script>
+<script src="js/corridors.js"></script>
 <script src="js/daily.js"></script>
 
 </body>

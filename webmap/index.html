@@ -11,7 +11,7 @@
 <script src="js/preload.js"></script>
 </head>
 
-<body class="view-map " data-initial-view="map">
+<body class="view-map " data-initial-view="map" data-overlays="towns epicentre">
 <header id="site-header">
   <div id="site-header-left">
     <h1 id="page-heading">DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard</h1>
@@ -96,10 +96,6 @@
 <div id="flow-hint" data-i18n="ui.hints.flow">Click a health zone to show movement flows (double-click to zoom)</div>
 <div id="flow-empty-hint" data-i18n="ui.hints.flow_no_data">No movement data available for this health zone.</div>
 <div id="controls" class="panel">
-  <div class="panel-header">
-    <strong data-i18n="ui.layer">Layer</strong>
-    <button class="panel-toggle" data-target="controls" type="button" data-i18n-aria="ui.aria.toggle_layer" data-i18n-title="ui.aria.collapse_layer" aria-label="Toggle layer controls" title="Collapse / expand layer controls">−</button>
-  </div>
   <div class="panel-body">
     <div class="checkbox-row">
       <input type="checkbox" id="show-programmes" checked />
@@ -334,6 +330,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/payload.js"></script>
+<script src="js/corridors.js"></script>
 <script src="js/daily.js"></script>
 
 </body>

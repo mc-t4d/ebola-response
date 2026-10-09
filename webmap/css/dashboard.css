@@ -1725,7 +1725,7 @@ html, body {
   background: var(--card) !important;
 }
 #site-header h1#page-heading {
-  color: var(--navy) !important;
+  color: var(--red) !important;
   letter-spacing: -0.01em;
 }
 #site-header .sub {
@@ -2578,12 +2578,12 @@ h1, h2, .mc-title { color: var(--brand-red); }
 .leaflet-control-attribution { font-family: var(--brand-font-label); font-size: 10px; }
 
 /* Map title: Merriweather italic, black, centred -- "6 October (Day 145)". */
+/* Colour and letter-spacing come from the theme rule near the top of the file
+   (var(--red)); only the font is set here. */
 #site-header h1#page-heading {
   font-family: var(--brand-font-title);
   font-style: normal;
   font-weight: 700;
-  color: var(--brand-black) !important;
-  letter-spacing: 0;
 }
 
 /* Panel sub-headers: League Spartan. */
@@ -2626,11 +2626,10 @@ h1, h2, .mc-title { color: var(--brand-red); }
 }
 #footer-links .link-btn { font-family: var(--brand-font-label); }
 
-/* Tracker: case count in brand YELLOW (dark hairline so it reads on white),
-   recovered in blue. */
+/* Tracker: case count in orange (the 5-10 class of the case ramp), recovered in blue. */
 #tracker .global-cell.cases .num {
-  color: var(--brand-yellow) !important;
-  text-shadow: 0 0 1px rgba(35, 31, 32, 0.55), 0 1px 0 rgba(35, 31, 32, 0.25);
+  color: var(--brand-case-2) !important;   /* #f28d07 */
+  text-shadow: none;
 }
 #tracker .global-cell.recovered .num { color: var(--brand-midnight) !important; }
 
@@ -2648,3 +2647,133 @@ body.view-trends #map {
   top: 0 !important; right: 0 !important; left: 0 !important;
   bottom: var(--view-chrome-height) !important; height: auto !important;
 }
+
+/* ==========================================================================
+   9. Slider ticks, corridor legend, Layer card
+   ========================================================================== */
+#trends-ticks-row { display: flex; align-items: flex-start; margin-top: 2px; }
+#trends-ticks-spacer { flex: 0 0 auto; width: 36px; }
+#trends-ticks { position: relative; flex: 1 1 auto; height: 30px; margin: 0 8px; }
+.trends-tick {
+  position: absolute; top: 0; width: 0; height: 100%; padding: 0; border: 0; background: none;
+  cursor: pointer; transform: translateX(-50%);
+  font-family: var(--brand-font-label); color: var(--brand-dark-gray);
+}
+.trends-tick::before {          /* the tick mark */
+  content: ""; position: absolute; left: 0; top: 0; width: 1px; height: 5px;
+  background: var(--brand-dark-gray); opacity: .55; transform: translateX(-50%);
+}
+.trends-tick.major::before { height: 9px; opacity: .9; }
+.trends-tick.active::before { width: 3px; height: 11px; background: var(--brand-red); opacity: 1; }
+.trends-tick-label {
+  position: absolute; left: 0; top: 11px; transform: translateX(-50%);
+  font-size: 10.5px; line-height: 1; white-space: nowrap;
+}
+.trends-tick.active .trends-tick-label { color: var(--brand-red); font-weight: 600; }
+.trends-tick:hover::before { background: var(--brand-red); opacity: 1; }
+
+#corridor-legend {
+  position: absolute; left: 12px; top: 12px; z-index: 1000;
+  width: 300px; max-width: calc(100% - 24px);
+  /* leave room for the legend card sitting bottom-left on the trend pages */
+  max-height: calc(100% - 24px - 300px); min-height: 0; overflow-y: auto;
+  padding: 10px 12px; font-family: var(--brand-font-label); font-size: 11.5px; line-height: 1.25; color: var(--ink);
+}
+#corridor-legend .corridor-title { font-weight: 600; font-size: 13px; padding-right: 26px; }
+#corridor-legend .corridor-toggle {
+  position: absolute; top: 6px; right: 8px; width: 22px; height: 22px; padding: 0; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--ink); font-size: 14px; line-height: 1;
+}
+#corridor-legend.collapsed .corridor-body { display: none; }
+#corridor-legend .corridor-key { color: var(--muted); margin: 2px 0 4px; }
+#corridor-legend .corridor-group {
+  margin: 8px 0 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--brand-dark-gray);
+}
+#corridor-legend .corridor-row { display: flex; align-items: flex-start; gap: 8px; margin: 3px 0; }
+#corridor-legend .corridor-row svg { flex: 0 0 34px; margin-top: 3px; }
+#corridor-legend .corridor-row span { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  #corridor-legend { width: auto; right: 12px; max-height: 32vh; }
+}
+
+/* Layer card: no header; League Spartan. */
+#controls, #controls label, #controls input { font-family: var(--brand-font-label); }
+#controls label { font-size: 13px; }
+
+/* ==========================================================================
+   10. Trend pages: legend card (bottom-left) and slider card (bottom-right)
+   ========================================================================== */
+body.view-trends #trends-legend {
+  display: block; position: absolute; z-index: 1000;
+  left: 12px !important; right: auto !important; top: auto !important;
+  bottom: calc(var(--view-chrome-height) + 12px) !important;
+  width: 250px; max-width: calc(100% - 24px); padding: 12px 14px;
+  font-family: var(--brand-font-label);
+}
+body.view-trends #trends-slider {
+  display: block; position: absolute; z-index: 1000;
+  right: 12px; bottom: calc(var(--view-chrome-height) + 12px);
+  width: min(560px, calc(100% - 24px - 250px - 12px)); padding: 12px 14px 10px;
+  font-family: var(--brand-font-label);
+}
+#trends-slider #trends-play-row { margin-top: 0; }
+#trends-slider #trends-date-label { margin-top: 4px; font-size: 12px; color: var(--muted); }
+#trends-legend #trends-class-legend { margin: 6px 0 0; }
+#trends-legend .legend-class-row { font-size: 12px; gap: 8px; }
+#trends-legend .legend-class-row .swatch { width: 26px; height: 16px; }
+#trends-legend #trends-legend-title strong { font-size: 13px; }
+
+@media (max-width: 700px) {
+  /* Narrow screens: the two cards stack, slider underneath. */
+  body.view-trends #trends-slider {
+    left: 12px; right: 12px; width: auto;
+  }
+  body.view-trends #trends-legend {
+    width: auto; right: 12px !important;
+    bottom: calc(var(--view-chrome-height) + 12px + 108px) !important;
+    max-height: 38vh; overflow-y: auto;
+  }
+  #trends-legend-title, #trends-legend-desc { display: block; }
+  #trends-mode-toggle { display: flex; }
+  #trends-date-slider, #trends-date-label { display: block; }
+}
+
+/* ==========================================================================
+   11. Route animation, town labels, epicentre icon
+   ========================================================================== */
+@keyframes route-flow  { to { stroke-dashoffset: -16; } }   /* one dash period (9 7) */
+@keyframes route-pulse { to { stroke-dashoffset: -24; } }   /* one pulse period (2 22) */
+.route-flow  { animation: route-flow  0.8s linear infinite; }
+.route-pulse { animation: route-pulse 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .route-flow, .route-pulse { animation: none; }
+}
+
+.town-label {
+  background: none; border: 0; box-shadow: none; padding: 0;
+  font-family: var(--brand-font-label); font-size: 11px; font-weight: 500; color: var(--brand-black);
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
+}
+.town-label::before { display: none; }
+.town-label-foreign { font-style: italic; font-weight: 400; color: var(--brand-dark-gray); }
+.towns-zoomed-out .town-label { display: none; }
+
+.epicentre-icon { background: none; border: 0; }
+.epicentre-icon svg { display: block; }
+.epicentre-row { display: flex; align-items: center; gap: 8px; font-family: var(--brand-font-label); font-size: 12px; }
+.corridor-epi { margin: 3px 0; }
+#legend-epicentre { margin: 0 0 6px; }
+
+/* Town dots are hoverable: labels are separate non-interactive markers. */
+.town-dot { cursor: pointer; }
+.town-label-marker { background: none; border: 0; pointer-events: none; }
+.town-label-marker span {
+  position: absolute; left: 7px; top: -7px; white-space: nowrap;
+  font-family: var(--brand-font-label); font-size: 11px; font-weight: 500; line-height: 14px; color: var(--brand-black);
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
+}
+.town-label-marker.foreign span { font-style: italic; font-weight: 400; color: var(--brand-dark-gray); }
+.towns-zoomed-out .town-label-marker { display: none; }
+.town-hover-tip { font-family: var(--brand-font-label); font-size: 12px; line-height: 1.35; max-width: 260px; white-space: normal; }
+.town-hover-tip strong { font-weight: 600; }
+.town-hover-tip .town-notes { color: var(--muted); }

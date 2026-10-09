@@ -241,6 +241,7 @@
   function loadEngine() {
     var s = document.createElement("script");
     s.src = "js/engine.js";
+    s.onload = function () { document.dispatchEvent(new Event("dashboard:ready")); };
     document.body.appendChild(s);
   }
 
