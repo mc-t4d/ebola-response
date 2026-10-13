@@ -1,5 +1,5 @@
 /* Map overlays built from DRC_Ebola_Corridors_Updated_10_8_v2.gpkg
- * (converted by Scripts/build_corridors_geojson.py -> data/corridors.geojson).
+ * (converted by tools/build_corridors_geojson.py -> data/corridors.geojson).
  *
  * Which overlays a page draws is set on <body data-overlays="...">:
  *   corridors  animated transmission routes + border crossings + route legend
@@ -10,15 +10,14 @@
  * dashed and the dashes flow toward the destination; domestic roads are solid
  * with pulses running along them. Arrowheads come from Leaflet.PolylineDecorator
  * when that plugin is loaded (optional). Motion is switched off by the
- * prefers-reduced-motion media query (css/dashboard.css).
+ * prefers-reduced-motion media query (css/style.css).
  *
- * Waits for the engine ("dashboard:ready", fired by js/daily.js once engine.js
- * has loaded) and draws onto window.dashboardMap.
+ * Waits for js/app.js ("dashboard:ready") and draws onto window.dashboardMap.
  */
 (function () {
   "use strict";
 
-  var DASH = "9 7";            // sum 16 -> keyframes in dashboard.css animate by 16
+  var DASH = "9 7";            // sum 16 -> keyframes in style.css animate by 16
   var PULSE = "2 22";          // sum 24
   var EPICENTRE_TOWNS = ["Bunia", "Rwampara"];
 

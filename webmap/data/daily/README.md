@@ -4,7 +4,7 @@
 `manifest.csv` has one row per day: source, SitRep no., zone/national totals, QA diff, `provisional`, notes.
 
 Columns: `zone,cases,deaths,national_cases,national_deaths` (daily-pipeline 5-column format).
-`zone` = webmap `nom` (key of `PAYLOAD.geometry` / `zone_data`). Cumulative values; only zones with
+`zone` = webmap `nom` (key of `data/geo/zones.geojson`). Cumulative values; only zones with
 >= 1 confirmed case. National topline on the first data row only. Blank = not reported.
 
 ## Sources
@@ -12,7 +12,7 @@ Columns: `zone,cases,deaths,national_cases,national_deaths` (daily-pipeline 5-co
   `insp_sitrep__national_cumulative_confirmed_{cases,deaths}.csv`). Used when zone rows exist on that date and
   zone sum (+ that date's `NA` bucket) equals the national total exactly (89 days; 15 May has no national total to check).
 - **Sitrep** — INSP SitRep PDFs (insp.cd). Zone tables transcribed into `_raw/` (`sitrep_raw_<date>.csv`,
-  `sitrep_meta_<date>.json`: SitRep no., PDF URL, notes) and normalised by `Scripts/build_daily_data.py`. Used when the
+  `sitrep_meta_<date>.json`: SitRep no., PDF URL, notes) and normalised by `tools/build_daily_data.py`. Used when the
   PDF's zone table reconciles with its own national total (|diff| <= 5; non-zero diffs are inconsistencies printed in the PDF).
 
 ## Provisional days (`provisional=True` in the manifest, 18 days)
@@ -30,4 +30,4 @@ figure for that date where one exists, so zone sum and national total differ (se
 - Per-zone **deaths** are attributed-only and under-count the national total; May SitReps print no per-zone deaths.
 - Zone values can fall between days where INSP reclassified cases (e.g. 22 Jul); values are as reported.
 
-Rebuild: `python Scripts/build_daily_data.py [--long-dir <local clone of build/long>]`
+Rebuild: `python tools/build_daily_data.py [--long-dir <local clone of build/long>]`
