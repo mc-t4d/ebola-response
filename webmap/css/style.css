@@ -1329,3 +1329,19 @@ body.view-trends #trends-slider {
 .town-hover-tip .town-notes {
   color: var(--muted);
 }
+.country-label {
+  background: none;
+  border: 0;
+  pointer-events: none;
+}
+.country-label span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: var(--brand-font-label);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--brand-dark-gray);
+}

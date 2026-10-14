@@ -22,7 +22,7 @@
   var B = document.body;
   var TRENDS = B.classList.contains("view-trends");
   var STEP = parseInt(B.dataset.sliderStep || "1", 10) || 1;
-  var PLAY_MS = STEP > 1 ? 900 : 150;
+  var PLAY_MS = STEP > 1 ? 1800 : 350;          // ms per frame: 21-day page / daily page
   var NEAR = 14, MID = 42;                       // recency thresholds (days)
   var STROKE = "#54585a", STROKE_HOVER = "#231f20";
   var REC_FILL = { 1: "#b2182b", 2: "#ef8a62", 3: "#fddbc7", 4: "#e0e0e0" };

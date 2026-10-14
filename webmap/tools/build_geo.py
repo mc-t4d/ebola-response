@@ -5,6 +5,8 @@
   provinces.geojson   26 provinces (admin1)
   country.geojson     DRC border (admin0)
   programmes.geojson  zones carrying a Program (RESET / IERDC / SAFER)
+  south_sudan.geojson South Sudan border (SSD_Admin_Boundaries_Counties_Payams.gpkg, admin0)
+  south_sudan_counties.geojson  South Sudan counties (same file, admin2)
 
 data/geo/zone_names.csv ties each GRID3 zone (zs_uid) to the `nom` used in the
 daily CSVs; edit it if a zone is renamed. Needs geopandas + shapely>=2.1.
@@ -59,6 +61,15 @@ def main():
     cs = shapely.simplify(ctry.geometry.make_valid().values, TOL, preserve_topology=True)
     write("country.geojson", [{"type": "Feature", "properties": {"name": "Democratic Republic of the Congo"},
                                "geometry": geom_json(g)} for g in cs])
+    ssd = gpd.read_file(VEC / "SSD_Admin_Boundaries_Counties_Payams.gpkg", layer="country_admin0").to_crs(4326)
+    ss = shapely.simplify(ssd.geometry.make_valid().values, TOL, preserve_topology=True)
+    write("south_sudan.geojson", [{"type": "Feature", "properties": {"name": "South Sudan"}, "geometry": geom_json(g)}
+                                  for g in ss])
+    cty = gpd.read_file(VEC / "SSD_Admin_Boundaries_Counties_Payams.gpkg", layer="counties_admin2").to_crs(4326)
+    cs2 = shapely.coverage_simplify(cty.geometry.make_valid().values, TOL)
+    write("south_sudan_counties.geojson", [
+        {"type": "Feature", "properties": {"county": n, "state": st}, "geometry": geom_json(g)}
+        for n, st, g in zip(cty.adm2_name, cty.adm1_name, cs2)])
     print(f"zones {len(feats)}, programmes {len(prog)}, provinces {len(prov)}")
 
 

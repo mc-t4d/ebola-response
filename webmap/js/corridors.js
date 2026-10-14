@@ -5,6 +5,7 @@
  *   corridors  animated transmission routes + border crossings + route legend
  *   towns      main towns and cities (dots with labels)
  *   epicentre  asterisk icons on Bunia and Rwampara, "Outbreak Epicenter"
+ *   southsudan South Sudan border + counties (data/geo/south_sudan*.geojson), under the zones
  *
  * Routes keep the gpkg colour (color_hex). Cross-border / transit routes are
  * dashed and the dashes flow toward the destination; domestic roads are solid
@@ -194,11 +195,33 @@
     else if (want.epicentre) mapLegendRow();
   }
 
+  function getJSON(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error(url + " HTTP " + r.status); return r.json(); });
+  }
+  function drawSouthSudan(map) {
+    map.createPane("south-sudan"); map.getPane("south-sudan").style.zIndex = 380;   // above tiles, below zones
+    return Promise.all([getJSON("data/geo/south_sudan.geojson"), getJSON("data/geo/south_sudan_counties.geojson")])
+      .then(function (r) {
+        L.geoJSON(r[0], { pane: "south-sudan", interactive: false,
+          style: { color: "#231f20", weight: 2.2, opacity: 1, fillColor: "#ececec", fillOpacity: 1 } }).addTo(map);
+        L.geoJSON(r[1], { pane: "south-sudan",
+          style: { color: "#54585a", weight: 0.8, opacity: 0.8, fillColor: "#ececec", fillOpacity: 0 },
+          onEachFeature: function (f, layer) {
+            layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });
+            layer.on("mouseover", function () { layer.setStyle({ fillOpacity: 0.5, fillColor: "#d4d4d4", weight: 1.4 }); });
+            layer.on("mouseout", function () { layer.setStyle({ fillOpacity: 0, weight: 0.8 }); });
+          } }).addTo(map);
+        L.marker([4.6, 31.2], { pane: "south-sudan", interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "country-label", html: "<span>South Sudan</span>", iconSize: [0, 0] }) }).addTo(map);
+      });
+  }
+
   function init() {
     var map = window.dashboardMap;
     var want = {};
     (document.body.dataset.overlays || "corridors towns").split(/\s+/).forEach(function (k) { if (k) want[k] = true; });
     if (!map) { console.warn("overlays: map not available"); return; }
+    if (want.southsudan) drawSouthSudan(map).catch(function (err) { console.warn("South Sudan not drawn (" + err.message + ")"); });
     fetch("data/corridors.geojson", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (fc) { draw(map, fc, want); })
