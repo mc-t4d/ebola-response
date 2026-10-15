@@ -199,6 +199,9 @@
   function getJSON(url) {
     return fetch(url).then(function (r) { if (!r.ok) throw new Error(url + " HTTP " + r.status); return r.json(); });
   }
+  // South Sudan counties (admin 2) outlined on the map; the rest of the country is plain grey.
+  var SS_COUNTIES = ["Tambura", "Ezo", "Nzara", "Yambio", "Ibba", "Maridi", "Juba", "Yei", "Morobo", "Kajo-keji",
+    "Magwi", "Torit", "Ikotos", "Budi", "Kapoeta East", "Kapoeta South"];
   function drawSouthSudan(map) {
     map.createPane("south-sudan"); map.getPane("south-sudan").style.zIndex = 380;   // above tiles, below zones
     return Promise.all([getJSON("data/geo/south_sudan.geojson"), getJSON("data/geo/south_sudan_counties.geojson")])
@@ -206,6 +209,7 @@
         L.geoJSON(r[0], { pane: "south-sudan", interactive: false,
           style: { color: "#231f20", weight: 2.2, opacity: 1, fillColor: "#ececec", fillOpacity: 1 } }).addTo(map);
         L.geoJSON(r[1], { pane: "south-sudan",
+          filter: function (f) { return SS_COUNTIES.indexOf(f.properties.county) >= 0; },
           style: { color: "#54585a", weight: 0.8, opacity: 0.8, fillColor: "#ececec", fillOpacity: 0 },
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });

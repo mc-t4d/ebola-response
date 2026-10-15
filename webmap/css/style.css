@@ -266,12 +266,6 @@ body.view-trends #controls, body.view-trends #legend {
   box-shadow:0 0 0 1px #5b86b3;
   cursor:pointer;
 }
-#trends-date-label {
-  display:block;
-  margin-top:8px;
-  font-size:12px;
-  color:#bbb;
-}
 body.trends-slider-busy .leaflet-interactive {
   transition: fill 0.14s linear, fill-opacity 0.14s linear;
 }
@@ -307,7 +301,7 @@ body.trends-slider-busy .leaflet-interactive {
   line-height:1.35;
   margin:4px 0 8px 0;
 }
-#trends-mode-toggle {
+#trends-mode-toggle, #trends-step-toggle {
   display:flex;
   gap:0;
   margin:8px 0 2px;
@@ -316,7 +310,7 @@ body.trends-slider-busy .leaflet-interactive {
   overflow:hidden;
   width:fit-content;
 }
-.trends-mode-btn {
+.trends-mode-btn, .step-btn {
   appearance:none;
   border:0;
   font:inherit;
@@ -324,7 +318,7 @@ body.trends-slider-busy .leaflet-interactive {
   padding:4px 10px;
   cursor:pointer;
 }
-.trends-mode-btn + .trends-mode-btn {
+.trends-mode-btn + .trends-mode-btn, .step-btn + .step-btn {
   border-left:1px solid rgba(255,255,255,0.25);
 }
 .recency-swatches {
@@ -483,7 +477,7 @@ body.trends-slider-busy .leaflet-interactive {
     width:auto;
     padding:6px;
   }
-  #trends-legend-title, #trends-mode-toggle, #trends-legend-desc, #trends-recency-legend, #trends-date-slider, #trends-date-label {
+#trends-legend-title, #trends-mode-toggle, #trends-legend-desc, #trends-recency-legend, #trends-date-slider, #trends-step-toggle {
     display:none;
   }
   #trends-play-row {
@@ -881,23 +875,23 @@ button {
 .leaflet-container .leaflet-interactive:focus, .leaflet-container svg:focus, .leaflet-container path:focus {
   outline: none;
 }
-#trends-mode-toggle {
+#trends-mode-toggle, #trends-step-toggle {
   border-color: var(--border) !important;
 }
-.trends-mode-btn {
+.trends-mode-btn, .step-btn {
   background: var(--card) !important;
   color: var(--ink) !important;
   border-color: var(--border) !important;
 }
-.trends-mode-btn:hover {
+.trends-mode-btn:hover, .step-btn:hover {
   background: rgba(155, 125, 78, 0.08) !important;
   color: var(--maroon) !important;
 }
-.trends-mode-btn.active {
+.trends-mode-btn.active, .step-btn.active {
   background: rgba(155, 125, 78, 0.16) !important;
   color: var(--link) !important;
 }
-.trends-mode-btn + .trends-mode-btn {
+.trends-mode-btn + .trends-mode-btn, .step-btn + .step-btn {
   border-left-color: var(--border) !important;
 }
 .recency-swatch {
@@ -1018,7 +1012,7 @@ body.view-trends #map {
 #trends-ticks {
   position: relative;
   flex: 1 1 auto;
-  height: 30px;
+  height: 46px;                      /* fixed so the card keeps its size in Daily and Weekly */
   margin: 0 8px;
 }
 .trends-tick {
@@ -1177,11 +1171,6 @@ body.view-trends #trends-slider {
 #trends-slider #trends-play-row {
   margin-top: 0;
 }
-#trends-slider #trends-date-label {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--muted);
-}
 #trends-legend #trends-class-legend {
   margin: 6px 0 0;
 }
@@ -1212,10 +1201,10 @@ body.view-trends #trends-slider {
   #trends-legend-title, #trends-legend-desc {
     display: block;
   }
-  #trends-mode-toggle {
+#trends-mode-toggle, #trends-step-toggle {
     display: flex;
   }
-  #trends-date-slider, #trends-date-label {
+  #trends-date-slider {
     display: block;
   }
 }
@@ -1311,4 +1300,70 @@ body.view-trends #trends-slider {
 }
 .road-legend {
   margin: 6px 0 0;
+}
+#dynamics {
+  top: 12px;
+  right: 12px;
+  width: min(330px, calc(100% - 24px));
+  padding: 12px 16px 12px;
+  font-family: var(--brand-font-body);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+#dynamics .dyn-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+#dynamics b {
+  font-weight: 700;
+}
+#dynamics i {
+  font-style: italic;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  #dynamics {
+    display: none !important;
+  }
+}
+.trends-tick-day {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.trends-tick.active .trends-tick-day {
+  color: var(--brand-red);
+  font-weight: 400;
+}
+#trends-step-toggle {
+  margin: 0 0 8px;
+}
+/* Weekly Case Growth page: info card shares the "As of" card style; "existing case" legend row wraps */
+#week-title {
+  top: 12px;
+  right: 12px;
+  width: min(330px, calc(100% - 24px));
+  padding: 12px 16px;
+  font-family: var(--brand-font-body);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+#week-title .dyn-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+#week-title b { font-weight: 700; }
+#week-title i { font-style: italic; color: var(--muted); }
+#trends-legend .exist-row {
+  white-space: normal;
+  align-items: flex-start;
+}
+#trends-legend .exist-row .swatch {
+  border: 2px solid var(--ink);
 }

@@ -1,6 +1,6 @@
 # DRC Ebola (Bundibugyo) web map
 
-Three static pages — `index.html` (Current Cumulative), `trends.html` (Daily Trend), `trend21.html` (21-Day Trend).
+Four static pages — `index.html` (Current Cumulative), `trends.html` (Daily / Weekly Trend), `weekly.html` (Weekly Case Growth: new cases per completed Mon–Sun week), `trend21.html` (21-Day Trend).
 Serve the folder over HTTP (browsers block `fetch` from `file://`):
 
     python3 -m http.server      # then open http://localhost:8000

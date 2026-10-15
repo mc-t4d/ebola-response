@@ -30,6 +30,8 @@ Tshopo zone; aggregate buckets (NA / A ventiler / Autres / sans fiche /
 non identifiees) excluded from zone rows and reported in the manifest.
 
     python tools/build_daily_data.py [--long-dir DIR]   # default: raw URL
+    python tools/build_daily_data.py --append-sitreps   # no download: add SitRep days found in _raw/
+                                                        # that are newer than the manifest's last day
 """
 import argparse, csv, io, json, re, sys, unicodedata, urllib.request
 from pathlib import Path
@@ -49,6 +51,10 @@ def norm(x):
 
 BUCKETS = ("na", "aventiler", "autres", "echantillonssansfiche", "sansfiche",
            "zsnonidentifiee", "nonidentifiees", "autreszones", "autreszs")
+# Real health zones reported by SitReps / INRB that have no polygon in the GRID3 boundary file.
+# They stay in the daily CSVs as ordinary zone rows (and in the zone sum / QA); the map just does not draw them.
+NO_GEOMETRY = {"Dakwa"}
+
 def is_bucket(name):
     n = norm(name)
     return n == "na" or any(n.startswith(b) for b in BUCKETS[1:])
@@ -70,6 +76,8 @@ for nom, prov in NOMS:
 
 def resolve(raw, province=None):
     """upstream / SitRep zone name -> webmap nom (None for buckets, '?x' if unknown)."""
+    if raw in NO_GEOMETRY:
+        return raw
     if is_bucket(raw):
         return None
     if raw in ("Lubunga", "Lubunga (Tshopo)"):
@@ -118,8 +126,69 @@ def write_daily(path, cases, deaths, nat_c, nat_d):
                         "" if i or nat_d is None else int(nat_d)])
     return len(zones)
 
+def append_sitreps():
+    """Add SitRep days newer than the manifest's last day, without touching existing files.
+
+    Same rules as main(): the SitRep zone table must reconcile with its own national total
+    (|diff| <= SITREP_TOL) or the day is withheld; a day with no SitRep between two SitRep days
+    is carried forward from the previous file and flagged provisional. Days that INRB later
+    publishes are picked up by a full rebuild (which prefers INRB when it reconciles exactly).
+    """
+    mf = pd.read_csv(OUT / "manifest.csv", dtype=str, keep_default_na=False)
+    last = pd.Timestamp(mf["date"].max())
+    sit = {}
+    for mp in sorted(RAW.glob("sitrep_meta_*.json")):
+        m = json.loads(mp.read_text(encoding="utf-8"))
+        if m["found"] and pd.Timestamp(m["date"]) > last:
+            sit[pd.Timestamp(m["date"])] = (m, list(csv.DictReader(open(RAW / f"sitrep_raw_{m['date']}.csv", encoding="utf-8"))))
+    if not sit:
+        print("nothing to append"); return
+    prev = mf[mf["file"] != ""].iloc[-1]
+    new = []
+    for D in pd.date_range(last + pd.Timedelta(days=1), max(sit)):
+        ds = D.strftime("%Y-%m-%d")
+        row = {c: "" for c in mf.columns}
+        row.update(date=ds, day=str((D - START).days), provisional="False")
+        if D in sit:
+            m, rows = sit[D]
+            cases, deaths, unattr = {}, {}, 0
+            for r in rows:
+                nm = resolve(r["zone"], r["province"])
+                cv = int(r["cases"]) if r["cases"].strip() else None
+                dv = int(r["deaths"]) if r["deaths"].strip() else None
+                if nm is None:
+                    unattr += cv or 0; continue
+                if nm.startswith("?"):
+                    sys.exit(f"unresolved SitRep name {r['zone']!r} ({r['province']}) on {ds}")
+                if cv is not None: cases[nm] = cases.get(nm, 0) + cv
+                if dv is not None: deaths[nm] = deaths.get(nm, 0) + dv
+            zs = sum(cases.values()); diff = m["national_cases"] - zs - unattr
+            nogeo = [f"{r['zone']} ({r['cases']})" for r in rows if r["zone"] in NO_GEOMETRY]
+            if abs(diff) > SITREP_TOL:
+                sys.exit(f"{ds}: SitRep #{m['sitrep_no']} zone table does not reconcile (diff {diff})")
+            fn = f"daily_{ds}_Sitrep.csv"
+            n = write_daily(OUT / fn, cases, deaths, m["national_cases"], m["national_deaths"])
+            row.update(source="Sitrep", file=fn, sitrep_no=str(m["sitrep_no"]), zones=str(n), zone_cases_sum=str(zs),
+                       unattributed_cases=str(unattr), national_cases=str(m["national_cases"]),
+                       national_deaths=str(m["national_deaths"]), national_recovered=str(m["national_recovered"]),
+                       qa_cases_diff=str(diff), notes="not in INRB" + (f"; source inconsistency, diff {diff}" if diff else "") +
+                       (f"; no GRID3 polygon for {', '.join(nogeo)}: kept in the CSV, not drawn on the map" if nogeo else ""))
+            prev = pd.Series(row)
+        else:
+            old = pd.read_csv(OUT / prev["file"])
+            fn = f"daily_{ds}_{prev['source']}.csv"
+            n = write_daily(OUT / fn, dict(zip(old.zone, old.cases)), dict(zip(old.zone, old.deaths)), None, None)
+            row.update(source=prev["source"], file=fn, zones=str(n), zone_cases_sum=str(int(old.cases.sum())),
+                       provisional="True", carried_from=prev["date"],
+                       notes=f"not in INRB; no SitRep for this date; PROVISIONAL: zone values carried forward from {prev['date']}")
+        new.append(row); print("added", ds, row["source"], row["file"])
+    pd.concat([mf, pd.DataFrame(new)], ignore_index=True).to_csv(OUT / "manifest.csv", index=False)
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--long-dir"); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--long-dir")
+    ap.add_argument("--append-sitreps", action="store_true"); a = ap.parse_args()
+    if a.append_sitreps:
+        return append_sitreps()
     OUT.mkdir(parents=True, exist_ok=True)
 
     c = read_long("insp_sitrep__cumulative_confirmed_cases.csv", a.long_dir)

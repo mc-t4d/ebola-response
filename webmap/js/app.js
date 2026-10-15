@@ -2,6 +2,7 @@
  *
  *   index.html    body.view-map     latest day, cumulative confirmed cases
  *   trends.html   body.view-trends  every day, time slider (+ recency colouring)
+ *   weekly.html   body.view-trends.view-weekly  new cases per completed Mon-Sun week
  *   trend21.html  body.view-trends  data-slider-step="21": one frame every 21 days
  *
  * Data (all static files, no build step in the browser):
@@ -21,8 +22,10 @@
 
   var B = document.body;
   var TRENDS = B.classList.contains("view-trends");
+  var WEEKLYPAGE = B.classList.contains("view-weekly");   // weekly new-case growth page
   var STEP = parseInt(B.dataset.sliderStep || "1", 10) || 1;
-  var PLAY_MS = STEP > 1 ? 1800 : 350;          // ms per frame: 21-day page / daily page
+  var PLAY_MS = STEP > 1 ? 1800 : 700;          // ms per frame: 21-day page / daily page
+  var WEEKLY_MS = 1500;                          // ms per frame in the Daily Trend page's Weekly mode
   var NEAR = 14, MID = 42;                       // recency thresholds (days)
   var STROKE = "#54585a", STROKE_HOVER = "#231f20";
   var REC_FILL = { 1: "#b2182b", 2: "#ef8a62", 3: "#fddbc7", 4: "#e0e0e0" };
@@ -31,6 +34,8 @@
     IERDC: { color: "#00aed8" },
     SAFER: { color: "#231f20", dash: "6 4" }
   };
+  // DRC provinces whose health zones (admin 2) are drawn; the other provinces are plain grey.
+  var PROVINCES_SHOWN = ["Haut-Uele", "Ituri", "Sud-Kivu", "Nord-Kivu", "Tshopo", "Bas-Uele", "Sud-Ubangi"];
   var BOUNDS = [[-2.9, 18.5], [6.1, 33.7]];       // initial view [[south, west], [north, east]]
   var INSP_URL = "https://insp.cd/";
   // Case classes (min..max cumulative confirmed cases) and the "no cases reported" grey
@@ -42,15 +47,19 @@
     { min: 45, max: null, color: "#C8102E", label: "45+" }
   ];
   var NULL_COLOR = "#E1E1E1";
+  var EXIST_COLOR = "#DCE6EC";                   // weekly page: zone has had cases, none this week
+  var EXIST_LABEL = "Zone with existing case but no new case this week";
   var LAYER_LABEL = "Confirmed cases", NO_CASES = "No cases reported", NO_DATA = "No data";
   var REC_LABEL = { 1: "Case in last 14 days", 2: "Case 15\u201342 days ago", 3: "No case for >42 days", 4: "No confirmed case" };
   var EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var EN_MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   var $ = function (id) { return document.getElementById(id); };
 
   var D = {};                  // loaded data: zones, provinces, country, programmes, modals
   var map, geoLayer, programmeLayer;
   var dates = [], cum = {}, recCat = {}, recDays = {};   // per-frame series
+  var dayNums = [], natC = [], natD = [], zoneCount = [], firstSeen = {};   // national totals, affected-zone count, first frame each zone appears (incl. zones without a polygon)
   var national = {};           // latest day topline {cases, deaths, recovered, date}
   var idx = 0, mode = "cumulative";
   var timer = null;
@@ -107,7 +116,13 @@
     var rows = manifest.filter(function (r) { return r.file && r.date; })
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (!rows.length) throw new Error("manifest.csv has no usable rows");
-    if (!TRENDS) return rows.slice(-1);
+    if (!TRENDS) {          // latest day, plus 1 and 7 days earlier for the "as of" card's changes
+      var n = rows.length, pick = [rows[Math.max(0, n - 8)], rows[Math.max(0, n - 2)], rows[n - 1]];
+      return pick.filter(function (r, i) { return pick.indexOf(r) === i; });
+    }
+    if (WEEKLYPAGE) {       // one frame per Sunday = end of each completed Monday-Sunday week
+      return rows.filter(function (r) { return new Date(r.date + "T00:00:00Z").getUTCDay() === 0; });
+    }
     if (STEP > 1) {
       var day0 = num(rows[0].day) || 0, last = rows.length - 1;
       rows = rows.filter(function (r, i) { return i === last || (num(r.day) - day0) % STEP === 0; });
@@ -118,22 +133,31 @@
   function loadFrames(entries) {
     return Promise.all(entries.map(function (e) { return getText("data/daily/" + e.file).then(parseCSV); }))
       .then(function (files) {
-        var known = {};
+        var known = {}, undrawn = 0;
         D.zones.features.forEach(function (f) { known[f.properties.nom] = true; });
         dates = entries.map(function (e) { return e.date; });
-        cum = {};
+        dayNums = entries.map(function (e) { return num(e.day); });     // outbreak day number of each frame (Day 0 = 14 May)
+        cum = {}; natC = []; natD = []; zoneCount = []; firstSeen = {};
         files.forEach(function (rows, i) {
+          var first0 = rows[0] || {}, e = entries[i], zc = 0;
+          var nc0 = num(first0.national_cases); if (nc0 === null) nc0 = num(e.national_cases);
+          var nd0 = num(first0.national_deaths); if (nd0 === null) nd0 = num(e.national_deaths);
+          natC.push(nc0 === null && i ? natC[i - 1] : nc0);              // days without an official figure repeat the last one
+          natD.push(nd0 === null && i ? natD[i - 1] : nd0);
           rows.forEach(function (r) {
             var c = num(r.cases);
             if (!r.zone || c === null || c <= 0) return;
-            if (!known[r.zone]) { console.warn("zone not in geometry:", r.zone); return; }
+            zc++;
+            if (firstSeen[r.zone] === undefined) firstSeen[r.zone] = i;
+            if (!known[r.zone]) { if (i === files.length - 1) undrawn += c; return; }       // reported zone without a polygon (e.g. Dakwa): not drawn, still in the totals
             (cum[r.zone] = cum[r.zone] || new Array(dates.length).fill(0))[i] = c;
           });
+          zoneCount.push(zc);
         });
 
         // topline of the latest day (file first row, else manifest, else zone sum)
         var latest = entries[entries.length - 1], first = files[files.length - 1][0] || {};
-        var zoneSum = Object.keys(cum).reduce(function (s, z) { return s + cum[z][dates.length - 1]; }, 0);
+        var zoneSum = Object.keys(cum).reduce(function (s, z) { return s + cum[z][dates.length - 1]; }, undrawn);
         var nc = num(first.national_cases); if (nc === null) nc = num(latest.national_cases);
         var nd = num(first.national_deaths); if (nd === null) nd = num(latest.national_deaths);
         national = { date: latest.date, cases: nc === null ? zoneSum : nc, deaths: nd, recovered: num(latest.national_recovered) };
@@ -157,6 +181,10 @@
 
   function valueAt(nom, i) {
     var s = cum[nom];
+    if (WEEKLYPAGE) {                       // new cases in the week ending at frame i; null = never had a case
+      if (!s || s[i] <= 0) return null;
+      return Math.max(0, s[i] - (i ? s[i - 1] : 0));
+    }
     if (!s) return TRENDS ? 0 : null;       // map: unaffected = null ("no cases reported"), never 0
     return s[i];
   }
@@ -176,6 +204,10 @@
     if (mode === "recency") {
       var c = recAt(nom, idx);
       s = { fillColor: REC_FILL[c] || REC_FILL[4], fillOpacity: c === 4 ? 0.55 : 0.85 };
+    } else if (WEEKLYPAGE) {
+      var w = valueAt(nom, idx);
+      s = w == null ? { fillColor: NULL_COLOR, fillOpacity: 0 }
+        : { fillColor: w > 0 ? classColor(w) : EXIST_COLOR, fillOpacity: 1 };
     } else {
       s = { fillColor: classColor(valueAt(nom, idx)), fillOpacity: 1 };
     }
@@ -191,6 +223,9 @@
         (cat === 4 || days < 0 ? "No confirmed case yet" : "Last confirmed case: " + days + " days ago");
     }
     var v = valueAt(p.nom, idx);
+    if (WEEKLYPAGE) {
+      return name + (v == null ? NO_CASES : "New cases this week: " + fmtNum(v) + "<br/>Cumulative: " + fmtNum(cum[p.nom][idx]));
+    }
     return name + (v == null ? NO_DATA : LAYER_LABEL + ": " + fmtNum(v));
   }
 
@@ -203,6 +238,12 @@
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
       attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ", maxZoom: 16
     }).addTo(map);
+
+    // other provinces: flat grey, no internal lines (below the zones)
+    pane("other-provinces", 390);
+    L.geoJSON(D.provinces, { pane: "other-provinces", interactive: false,
+      filter: function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) < 0; },
+      style: { stroke: false, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);
 
     geoLayer = L.geoJSON(D.zones, {
       style: zoneStyle,
@@ -221,6 +262,7 @@
     if (TRENDS) {
       pane("province-outline", 550);
       L.geoJSON(D.provinces, { pane: "province-outline", interactive: false,
+        filter: function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; },
         style: { color: "#231f20", weight: 1.4, opacity: 0.88, fillOpacity: 0 } }).addTo(map);
     }
     pane("country-outline", 552);
@@ -268,6 +310,10 @@
         return "<div class='legend-class-row'><span class='swatch program-swatch' style='border:3px solid " + PROGRAMMES[k].color +
           ";background:transparent'></span><span class='legend-class-label'>" + k + " programme area</span></div>";
       }).join("");
+    } else if (WEEKLYPAGE) {
+      $("trends-class-legend").innerHTML =
+        "<div class='legend-class-row exist-row'><span class='swatch' style='background:" + EXIST_COLOR + "'></span>" +
+        "<span class='legend-class-label'>" + EXIST_LABEL + "</span></div>" + classRows();
     } else {
       $("trends-class-legend").innerHTML = classRows() + nullRow();
       $("recency-swatches").innerHTML = [1, 2, 3, 4].map(function (c) {
@@ -291,9 +337,56 @@
       }).join("") + "</div></div>";
   }
 
+  // ---- "as of" dynamics card (Daily Trend) ---------------------------------
+  function signed(n) { return (n >= 0 ? "+" : "\u2212") + fmtNum(Math.abs(n)); }
+  function longDate(iso) {                           // "2026-10-04" -> {d: 4, m: "October"}
+    var p = iso.split("-");
+    return parseInt(p[2], 10) + " " + EN_MONTHS_LONG[parseInt(p[1], 10) - 1];
+  }
+  // Weekly page: title card for the week ending on the current frame (a Sunday)
+  function renderWeekTitle() {
+    var el = $("week-title");
+    var end = dates[idx], start = new Date(Date.parse(end) - 6 * 864e5).toISOString().slice(0, 10);
+    var dc = natC[idx] - (idx ? natC[idx - 1] : 0), dd = natD[idx] - (idx ? natD[idx - 1] : 0);
+    el.innerHTML = "<div class='dyn-title'>Weekly New Case Growth</div><div><i>" + longDate(start) + " to " + longDate(end) + "</i></div>" +
+      "<div><b>" + signed(dc) + "</b> <i>new confirmed cases,</i> <b>" + signed(dd) + "</b> <i>new deaths</i></div>";
+  }
+  function renderDynamics() {
+    if (WEEKLYPAGE) return renderWeekTitle();
+    var el = $("dynamics");
+    if (!el) return;
+    var at = function (arr, i) { return i < 0 ? 0 : (arr[i] == null ? 0 : arr[i]); };   // before Day 0 everything is 0
+    // frame index of the date n days before the current one (-1 = before the first day)
+    var back = function (n) {
+      var t = new Date(Date.parse(dates[idx]) - n * 864e5).toISOString().slice(0, 10);
+      return dates.indexOf(t);
+    };
+    var dayI = back(1), weekI = back(7);
+    var line = function (arr, noun) {
+      var v = at(arr, idx);
+      return "<div><b>" + fmtNum(v) + "</b> <i>" + noun + ",</i> <b>" + signed(v - at(arr, dayI)) +
+        "</b> <i>over the last day,</i> <b>" + signed(v - at(arr, weekI)) + "</b> <i>over the last week</i></div>";
+    };
+    var nz = Object.keys(firstSeen).filter(function (z) { return firstSeen[z] > weekI && firstSeen[z] <= idx; })
+      .sort(function (a, b) { return firstSeen[a] - firstSeen[b] || (a < b ? -1 : 1); })
+      .map(function (z) { var f = D.zones.features.filter(function (x) { return x.properties.nom === z; })[0]; return f ? f.properties.name : z; });
+    var d = new Date(dates[idx] + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+    el.innerHTML = "<div class='dyn-title'>As of " + d + (weekly && dayNums[idx] !== null ? " (Week " + Math.floor(dayNums[idx] / 7) + ")" : "") + "</div>" +
+      line(natC, "total cases") + line(natD, "total deaths") + line(zoneCount, "affected health zone" + (at(zoneCount, idx) === 1 ? "" : "s")) +
+      "<div><i>New health zones: " + (nz.length ? esc(nz.join(", ")) : "none this period") + "</i></div>";
+  }
+
   // ---- trend slider -------------------------------------------------------
-  function updateDateLabel() {
-    $("trends-date-label").textContent = "As of " + fmtDate(dates[idx]);
+  // `shown` = the day indices the slider steps through: every day, or (Daily Trend's
+  // Weekly toggle) every 7th day from Day 0 plus the latest day. All days stay loaded,
+  // so the "as of" card can still compare against 1 and 7 days earlier.
+  var shown = [], weekly = false;
+  function buildShown() {
+    var n = dates.length;
+    shown = [];
+    for (var i = 0; i < n; i++) {
+      if (!weekly || (dayNums[i] - dayNums[0]) % 7 === 0 || i === n - 1) shown.push(i);
+    }
   }
   function syncPlayButton() {
     var b = $("trends-play-btn");
@@ -302,11 +395,11 @@
   }
   function setIdx(i) {
     idx = Math.max(0, Math.min(i, dates.length - 1));
-    $("trends-date-slider").value = idx;
+    $("trends-date-slider").value = Math.max(0, shown.indexOf(idx));
     document.querySelectorAll(".trends-tick").forEach(function (b) {
       b.classList.toggle("active", parseInt(b.dataset.idx, 10) === idx);
     });
-    updateDateLabel();
+    renderDynamics();
     geoLayer.setStyle(zoneStyle);
   }
   function stop() {
@@ -317,38 +410,48 @@
   }
   function play() {
     stop();
-    if (dates.length < 2) return;
+    if (shown.length < 2) return;
     B.classList.add("trends-slider-busy");
-    setIdx(0);
+    setIdx(shown[0]);
     timer = setInterval(function () {
-      if (idx >= dates.length - 1) return stop();
-      setIdx(idx + 1);
-      if (idx >= dates.length - 1) stop();
-    }, PLAY_MS);
+      var p = shown.indexOf(idx);
+      if (p >= shown.length - 1) return stop();
+      setIdx(shown[p + 1]);
+      if (p + 1 >= shown.length - 1) stop();
+    }, weekly || WEEKLYPAGE ? WEEKLY_MS : PLAY_MS);
     syncPlayButton();
   }
 
-  // Ticks: few frames -> one labelled tick each; many -> a faint tick every
-  // Monday and a labelled tick at the first date of each month. Click = jump.
+  // Ticks. Few frames (21-Day page): every tick labelled "date (Day N)". Weekly: a tick per
+  // week, every 4th labelled. Daily: a faint tick every Monday and a labelled tick at the first
+  // date of each month. Click = jump.
   function buildTicks() {
-    var wrap = $("trends-ticks"), n = dates.length, sparse = n <= 12, lastMonth = null;
+    var wrap = $("trends-ticks"), n = shown.length, framed = n <= 12 || weekly || WEEKLYPAGE, lastMonth = null;
     var gap = parseFloat(getComputedStyle($("trends-play-row")).columnGap) || 8;
     $("trends-ticks-spacer").style.width = ($("trends-play-btn").offsetWidth + gap) + "px";
     wrap.innerHTML = "";
-    dates.forEach(function (iso, i) {
-      var dt = new Date(iso + "T00:00:00Z"), month = dt.getUTCMonth(), major = sparse || month !== lastMonth;
+    shown.forEach(function (di, p) {
+      var iso = dates[di], dt = new Date(iso + "T00:00:00Z"), month = dt.getUTCMonth(), major;
+      if (framed) major = n <= 12 || (p % 4 === 0 && n - 1 - p >= 2) || p === n - 1;
+      else major = month !== lastMonth;
       lastMonth = month;
-      if (!major && dt.getUTCDay() !== 1) return;
+      if (!framed && !major && dt.getUTCDay() !== 1) return;
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "trends-tick" + (major ? " major" : "");
-      b.style.left = (n > 1 ? (i / (n - 1)) * 100 : 0) + "%";
-      b.dataset.idx = i;
+      b.className = "trends-tick" + (major || framed ? " major" : "");
+      b.style.left = (n > 1 ? (p / (n - 1)) * 100 : 0) + "%";
+      b.dataset.idx = di;
       b.title = iso; b.setAttribute("aria-label", iso);
       if (major) {
         var lab = document.createElement("span");
         lab.className = "trends-tick-label";
-        lab.textContent = dt.toLocaleDateString("en", sparse ? { day: "numeric", month: "short", timeZone: "UTC" } : { month: "short", timeZone: "UTC" });
+        lab.textContent = dt.toLocaleDateString("en", framed ? { day: "numeric", month: "short", timeZone: "UTC" } : { month: "short", timeZone: "UTC" });
+        if (framed && dayNums[di] !== null) {
+          var dn = document.createElement("span");
+          dn.className = "trends-tick-day";
+          dn.textContent = weekly || WEEKLYPAGE ? "(W" + Math.floor(dayNums[di] / 7) + ")" : "(Day " + dayNums[di] + ")";
+          lab.appendChild(dn);
+        }
         b.appendChild(lab);
       }
       wrap.appendChild(b);
@@ -357,9 +460,10 @@
 
   function wireTrends() {
     var slider = $("trends-date-slider");
-    slider.max = dates.length - 1;
+    buildShown();
+    slider.max = shown.length - 1;
     buildTicks();
-    slider.addEventListener("input", function () { stop(); setIdx(parseInt(slider.value, 10) || 0); });
+    slider.addEventListener("input", function () { stop(); setIdx(shown[parseInt(slider.value, 10) || 0]); });
     $("trends-play-btn").addEventListener("click", function () { if (timer) stop(); else play(); });
     $("trends-ticks").addEventListener("click", function (ev) {
       var b = ev.target.closest(".trends-tick");
@@ -372,6 +476,21 @@
         $("trends-cumulative-legend").style.display = mode === "recency" ? "none" : "";
         $("trends-recency-legend").style.display = mode === "recency" ? "" : "none";
         geoLayer.setStyle(zoneStyle);
+      });
+    });
+    // Daily | Weekly slider step (Daily Trend page only)
+    document.querySelectorAll(".step-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var w = b.dataset.step === "7";
+        if (w === weekly) return;
+        stop();
+        weekly = w;
+        document.querySelectorAll(".step-btn").forEach(function (x) { x.classList.toggle("active", x === b); });
+        buildShown();
+        var snap = shown.filter(function (d) { return d <= idx; }).pop();     // stay on (or just before) the current date
+        slider.max = shown.length - 1;
+        buildTicks();
+        setIdx(snap === undefined ? shown[0] : snap);
       });
     });
   }
@@ -418,6 +537,7 @@
     getText("data/daily/manifest.csv").then(parseCSV)
   ]).then(function (r) {
     D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4] };
+    D.zones = { type: "FeatureCollection", features: D.zones.features.filter(function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; }) };
     return loadFrames(pickEntries(r[5]));
   }).then(function () {
     buildMap();
@@ -428,8 +548,9 @@
     $("terms-updated").textContent = D.modals.terms_updated;
     renderHeader();
     renderLegends();
-    if (TRENDS) updateDateLabel();
+    renderDynamics();
     document.dispatchEvent(new Event("dashboard:ready"));
-    if (TRENDS) play();                       // start from the first frame every time the page opens
+    if (WEEKLYPAGE) setIdx(dates.length - 1);   // open on the latest completed week
+    else if (TRENDS) play();                  // start from the first frame every time the page opens
   }).catch(fail);
 })();

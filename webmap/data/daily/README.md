@@ -1,6 +1,6 @@
 # Daily cumulative confirmed cases / deaths by health zone
 
-`daily_<YYYY-MM-DD>_<INRB|Sitrep>.csv` — one file per day, 14 May → 6 Oct 2026 (146 files).
+`daily_<YYYY-MM-DD>_<INRB|Sitrep>.csv` — one file per day, 14 May → 12 Oct 2026 (152 files).
 `manifest.csv` has one row per day: source, SitRep no., zone/national totals, QA diff, `provisional`, notes.
 
 Columns: `zone,cases,deaths,national_cases,national_deaths` (daily-pipeline 5-column format).
@@ -22,6 +22,13 @@ figure for that date where one exists, so zone sum and national total differ (se
 14 May (header only: national 8, no zone split), 16 May, 26 / 28 / 30 / 31 May, 3 Jun, 12 Jun, 26 Jun, 28 Jun,
 12 Jul (SitRep zone table is the 10 Jul distribution), 28–29 Jul, 6–9 Aug (SitReps carry only province tables and maps),
 3 Oct. Filter on `provisional` to drop them.
+
+## Appended days (7–12 Oct, SitRep #146–#151)
+Added with `python tools/build_daily_data.py --append-sitreps` once the INRB `build/long` files stopped being reachable
+(no re-download; existing files untouched). Source = **Sitrep**; each zone table reconciles exactly with the SitRep's national total
+(and with INRB's national total for 9–12 Oct). A full rebuild will prefer INRB for these days if INRB's zone files reconcile.
+`Dakwa` (Bas-Uélé, new from SitRep #147, 1 case) has no polygon in the GRID3 file: it stays in the daily CSVs as a normal zone row (and in the zone sum / QA) but is not drawn; `app.js` ignores zones without a polygon, and `NO_GEOMETRY` in `tools/build_daily_data.py` lists them.
+SitRep #150 prints 9,065 in two places and 9,066 in the zone table / INRB national; 9,066 is used.
 
 ## Rules and caveats
 - Per-zone as-of join; spelling variants collapsed (Mongbalu/Mongbwalu, Gethy/Gety, Nia Nia/Nia-Nia, Makiso-Kisangani,

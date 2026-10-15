@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard</title>
+<title>DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard – Daily &amp; Weekly Trend</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="css/style.css" />
@@ -29,7 +29,8 @@
 <nav id="page-tabs">
   <div id="view-tabs" class="view-tabs">
     <a href="index.html" class="view-tab" data-view="map">Current Cumulative</a>
-    <a href="trends.html" class="view-tab active" data-view="trends">Daily Trend</a>
+    <a href="trends.html" class="view-tab active" data-view="trends">Daily / Weekly Trend</a>
+    <a href="weekly.html" class="view-tab" data-view="weekly">Weekly Case Growth</a>
     <a href="trend21.html" class="view-tab" data-view="trend21">21-Day Trend</a>
   </div>
 </nav>
@@ -56,6 +57,7 @@
 </div>
 <div id="viewport-area">
 <div id="map"></div>
+<div id="dynamics" class="panel" aria-live="polite"></div>
 <div id="trends-legend" class="panel">
   <div id="trends-legend-title"><strong>Confirmed cases (cumulative)</strong></div>
   <div id="trends-mode-toggle" role="group" aria-label="Map colouring mode">
@@ -72,13 +74,15 @@
   </div>
 </div>
 <div id="trends-slider" class="panel">
+  <div id="trends-step-toggle" role="group" aria-label="Slider step">
+    <button type="button" class="step-btn active" data-step="1">Daily</button>
+    <button type="button" class="step-btn" data-step="7">Weekly</button>
+  </div>
   <div id="trends-play-row">
     <button type="button" id="trends-play-btn" aria-label="Play">▶</button>
     <input type="range" id="trends-date-slider" min="0" max="0" value="0" />
   </div>
-  <div id="trends-ticks-row"><span id="trends-ticks-spacer"></span><div id="trends-ticks"></div></div>
-  <span id="trends-date-label"></span>
-</div>
+  <div id="trends-ticks-row"><span id="trends-ticks-spacer"></span><div id="trends-ticks"></div></div></div>
 <div id="view-switcher">
   <div id="footer-links">
     <button id="methods-btn" class="link-btn" type="button">Contributors, Data, and Methods</button>
