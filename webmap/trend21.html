@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mercy Corps Ebola Response Contextual Web Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="view-trends" data-slider-step="21" data-overlays="southsudan roads corridors towns epicentre">
+<header id="site-header">
+  <div id="site-header-left">
+    <h1 id="page-heading">Mercy Corps Ebola Response Contextual Web Map</h1>
+    <div class="sub" id="title-sub"></div>
+    <!-- Narrow screens: #title-sub is hidden; this row holds an info popup instead. -->
+    <div id="header-narrow-row">
+      <button type="button" id="header-info-btn" aria-haspopup="true" aria-expanded="false" aria-label="More information">ⓘ</button>
+      <div id="header-info-popup" role="tooltip" aria-hidden="true">
+        <div id="header-info-popup-body"></div>
+        <div id="header-info-popup-links">
+          <button type="button" id="header-methods-btn" class="link-btn">Contributors, Data, and Methods</button>
+          <button type="button" id="header-terms-btn" class="link-btn">Terms of Use</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="site-header-right"><div id="tracker"></div></div>
+</header>
+<nav id="page-tabs">
+  <div id="view-tabs" class="view-tabs">
+    <a href="index.html" class="view-tab" data-view="map">Current Cumulative</a>
+    <a href="trends.html" class="view-tab" data-view="trends">Daily / Weekly Trend</a>
+    <a href="weekly.html" class="view-tab" data-view="weekly">Weekly Case Growth</a>
+    <a href="trend21.html" class="view-tab active" data-view="trend21">21-Day Trend</a>
+  </div>
+</nav>
+<div id="methods-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button class="close" id="methods-close" aria-label="Close">✕</button>
+      <h2>Contributors, Data, and Methods</h2>
+    </div>
+    <div class="sheet-body"><div id="methods-content"></div></div>
+  </div>
+</div>
+<div id="terms-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button class="close" id="terms-close" aria-label="Close">✕</button>
+      <h2>Terms of Use</h2>
+    </div>
+    <div class="sheet-body">
+      <div id="terms-updated"></div>
+      <div id="terms-content"></div>
+    </div>
+  </div>
+</div>
+<div id="viewport-area">
+<div id="map"></div>
+<div id="dynamics" class="panel" aria-live="polite"></div>
+<div id="trends-legend" class="panel">
+  <div id="trends-legend-title"><strong>Confirmed cases (cumulative)</strong></div>
+  <div id="trends-mode-toggle" role="group" aria-label="Map colouring mode">
+    <button type="button" class="trends-mode-btn active" data-mode="cumulative">Cumulative cases</button>
+    <button type="button" class="trends-mode-btn" data-mode="recency">Recency</button>
+  </div>
+  <div id="trends-cumulative-legend">
+    <p id="trends-legend-desc">Transcribed from INSP sitreps. Cases are sometimes revised downwards in consecutive sitreps.</p>
+    <div class="legend-classes" id="trends-class-legend"></div>
+  </div>
+  <div id="trends-recency-legend" style="display:none">
+    <p id="trends-recency-desc">Health zones coloured by time since their most recent confirmed case, based on INSP sitrep report dates (not symptom onset), as of the slider date.</p>
+    <div class="recency-swatches" id="recency-swatches"></div>
+  </div>
+</div>
+<div id="trends-slider" class="panel">
+  <div id="trends-play-row">
+    <button type="button" id="trends-play-btn" aria-label="Play">▶</button>
+    <input type="range" id="trends-date-slider" min="0" max="0" value="0" />
+  </div>
+  <div id="trends-ticks-row"><span id="trends-ticks-spacer"></span><div id="trends-ticks"></div></div>
+</div>
+<div id="view-switcher">
+  <div id="footer-links">
+    <button id="methods-btn" class="link-btn" type="button">Contributors, Data, and Methods</button>
+    <button id="terms-btn"   class="link-btn" type="button">Terms of Use</button>
+  </div>
+</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+<script src="js/app.js"></script>
+<script src="js/corridors.js"></script>
+</body>
+</html>
