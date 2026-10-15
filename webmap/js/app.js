@@ -63,7 +63,7 @@
   var dayNums = [], natC = [], natD = [], zoneCount = [], firstSeen = {};   // national totals, affected-zone count, first frame each zone appears (incl. zones without a polygon)
   var national = {};           // latest day topline {cases, deaths, recovered, date}
   var idx = 0, mode = "cumulative";
-  var timer = null;
+  var timer = null, manifestRows = null, fullHistory = false;
 
   // ---- helpers ------------------------------------------------------------
   function esc(s) {
@@ -113,11 +113,11 @@
   // ---- data ---------------------------------------------------------------
   // Manifest rows to show: just the latest day, or (trend pages) every day /
   // every STEP-th day counted from Day 0, always ending on the latest.
-  function pickEntries(manifest) {
+  function pickEntries(manifest, all) {
     var rows = manifest.filter(function (r) { return r.file && r.date; })
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (!rows.length) throw new Error("manifest.csv has no usable rows");
-    if (!TRENDS) {          // latest day, plus 1 and 7 days earlier for the "as of" card's changes
+    if (!TRENDS && !all) {          // latest day, plus 1 and 7 days earlier for the "as of" card's changes
       var n = rows.length, pick = [rows[Math.max(0, n - 8)], rows[Math.max(0, n - 2)], rows[n - 1]];
       return pick.filter(function (r, i) { return pick.indexOf(r) === i; });
     }
@@ -334,10 +334,18 @@
       "<span class='legend-class-label'>" + NO_CASES + "</span></div>";
   }
 
+  function recencyRows() {
+    return [1, 2, 3, 4].map(function (c) {
+      return "<div class='recency-swatch'><span class='recency-chip' style='background:" + REC_FILL[c] + "'></span><span>" +
+        REC_LABEL[c] + "</span></div>";
+    }).join("");
+  }
+
   function renderLegends() {
     if (!TRENDS) {
       $("legend-title").innerHTML = "<strong>" + LAYER_LABEL + "</strong>";
       $("legend-classes").innerHTML = classRows() + nullRow();
+      $("recency-swatches").innerHTML = recencyRows();
       var present = {};
       D.programmes.features.forEach(function (f) { present[f.properties.program] = true; });
       $("legend-programs").innerHTML = Object.keys(PROGRAMMES).filter(function (k) { return present[k]; }).map(function (k) {
@@ -350,10 +358,7 @@
         "<span class='legend-class-label'>" + EXIST_LABEL + "</span></div>" + classRows();
     } else {
       $("trends-class-legend").innerHTML = classRows() + nullRow();
-      $("recency-swatches").innerHTML = [1, 2, 3, 4].map(function (c) {
-        return "<div class='recency-swatch'><span class='recency-chip' style='background:" + REC_FILL[c] + "'></span><span>" +
-          REC_LABEL[c] + "</span></div>";
-      }).join("");
+      $("recency-swatches").innerHTML = recencyRows();
     }
   }
 
@@ -537,6 +542,35 @@
     });
   }
 
+  // Current Cumulative page: Cumulative | Recency toggle. Recency needs every day's file,
+  // so the full history is fetched the first time it is chosen.
+  function wireMapMode() {
+    var btns = document.querySelectorAll(".trends-mode-btn");
+    var apply = function (m) {
+      mode = m;
+      btns.forEach(function (x) { x.classList.toggle("active", x.dataset.mode === m); });
+      $("legend-classes").style.display = m === "recency" ? "none" : "";
+      $("recency-swatches").style.display = m === "recency" ? "" : "none";
+      $("legend-title").innerHTML = "<strong>" + (m === "recency" ? "Confirmed cases by recency" : LAYER_LABEL) + "</strong>";
+      geoLayer.setStyle(zoneStyle);
+    };
+    btns.forEach(function (b) {
+      b.addEventListener("click", function () {
+        var m = b.dataset.mode;
+        if (m === mode) return;
+        if (m === "cumulative" || fullHistory) return apply(m);
+        var label = b.textContent;
+        b.textContent = "Loading\u2026";
+        loadFrames(pickEntries(manifestRows, true)).then(function () {
+          fullHistory = true;
+          b.textContent = label;
+          updateZoneLabels(); renderDynamics();
+          apply(m);
+        }).catch(function (err) { console.error(err); b.textContent = label; });
+      });
+    });
+  }
+
   // ---- page chrome --------------------------------------------------------
   function wireChrome() {
     // modals
@@ -580,11 +614,12 @@
   ]).then(function (r) {
     D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4] };
     D.zones = { type: "FeatureCollection", features: D.zones.features.filter(function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; }) };
-    return loadFrames(pickEntries(r[5]));
+    manifestRows = r[5];
+    return loadFrames(pickEntries(manifestRows));
   }).then(function () {
     buildMap();
     wireChrome();
-    if (TRENDS) wireTrends();
+    if (TRENDS) wireTrends(); else wireMapMode();
     $("methods-content").innerHTML = D.modals.methods;
     $("terms-content").innerHTML = D.modals.terms;
     $("terms-updated").textContent = D.modals.terms_updated;

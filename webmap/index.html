@@ -72,7 +72,12 @@
     <button class="panel-toggle" data-target="legend" type="button" aria-label="Toggle legend" title="Collapse / expand legend">−</button>
   </div>
   <div class="panel-body">
+    <div id="trends-mode-toggle" role="group" aria-label="Map colouring mode">
+      <button type="button" class="trends-mode-btn active" data-mode="cumulative">Cumulative cases</button>
+      <button type="button" class="trends-mode-btn" data-mode="recency">Recency</button>
+    </div>
     <div class="legend-classes" id="legend-classes"></div>
+    <div class="recency-swatches" id="recency-swatches" style="display:none"></div>
     <div class="legend-classes" id="legend-programs"></div>
   </div>
 </div>

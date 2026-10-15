@@ -49,7 +49,7 @@
     d.id = "legend-epicentre";
     d.className = "legend-classes";
     d.innerHTML = epicentreRow();
-    if (body) { body.insertBefore(d, body.firstChild); return; }     // top of the list
+    if (body) { var tg = document.getElementById("trends-mode-toggle"); body.insertBefore(d, tg ? tg.nextSibling : body.firstChild); return; }   // top of the list, under the mode toggle
     // trend pages: under the class / recency legend, above the road row
     var anchor = document.getElementById("trends-recency-legend") || document.getElementById("trends-class-legend");
     if (anchor) anchor.parentNode.insertBefore(d, anchor.nextSibling);
@@ -238,7 +238,7 @@
           "<line x1='1' y1='5' x2='25' y2='5' stroke='#fff' stroke-width='5' stroke-linecap='round'/>" +
           "<line x1='1' y1='5' x2='25' y2='5' stroke='#c8102e' stroke-width='2.5' stroke-linecap='round'/></svg><span>National road</span></div>";
         var epi = document.getElementById("legend-epicentre");        // map page: road row goes under the epicentre row
-        if (host.id !== "trends-legend") host.insertBefore(row, epi ? epi.nextSibling : host.firstChild);
+        if (host.id !== "trends-legend") host.insertBefore(row, epi ? epi.nextSibling : (document.getElementById("trends-mode-toggle") ? document.getElementById("trends-mode-toggle").nextSibling : host.firstChild));
         else host.appendChild(row);
       }
     });
