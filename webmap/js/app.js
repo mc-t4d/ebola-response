@@ -7,7 +7,7 @@
  * Data (all static files, no build step in the browser):
  *   data/daily/manifest.csv + daily_<date>_<source>.csv   cases per health zone
  *   data/geo/*.geojson                                    zones, provinces, country, programme areas
- *   data/site.json  data/i18n.json  data/modals.json      classes, bounds, text (en/fr)
+ *   data/modals.json                                      text of the Methods / Terms pop-ups
  *
  * The latest manifest row is the "current" day: add a daily file + manifest row
  * (tools/build_daily_data.py) and the maps pick it up on the next load.
@@ -31,13 +31,24 @@
     IERDC: { color: "#00aed8" },
     SAFER: { color: "#231f20", dash: "6 4" }
   };
+  var BOUNDS = [[-2.9, 18.5], [6.1, 33.7]];       // initial view [[south, west], [north, east]]
+  var INSP_URL = "https://insp.cd/";
+  // Case classes (min..max cumulative confirmed cases) and the "no cases reported" grey
+  var CLASSES = [
+    { min: 1,  max: 4,    color: "#FFD200", label: "1\u20134" },
+    { min: 5,  max: 10,   color: "#F28D07", label: "5\u201310" },
+    { min: 11, max: 21,   color: "#E4510B", label: "11\u201321" },
+    { min: 22, max: 44,   color: "#D71E0C", label: "22\u201344" },
+    { min: 45, max: null, color: "#C8102E", label: "45+" }
+  ];
+  var NULL_COLOR = "#E1E1E1";
+  var LAYER_LABEL = "Confirmed cases", NO_CASES = "No cases reported", NO_DATA = "No data";
+  var REC_LABEL = { 1: "Case in last 14 days", 2: "Case 15\u201342 days ago", 3: "No case for >42 days", 4: "No confirmed case" };
   var EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   var $ = function (id) { return document.getElementById(id); };
-  var lang = "en";
-  try { if (localStorage.getItem("bdbv-dashboard-lang") === "fr") lang = "fr"; } catch (e) {}
 
-  var D = {};                  // loaded data: zones, provinces, country, programmes, site, i18n, modals
+  var D = {};                  // loaded data: zones, provinces, country, programmes, modals
   var map, geoLayer, programmeLayer;
   var dates = [], cum = {}, recCat = {}, recDays = {};   // per-frame series
   var national = {};           // latest day topline {cases, deaths, recovered, date}
@@ -48,19 +59,10 @@
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  function ui(key) { var t = D.i18n[lang]; return (t && t[key] != null) ? t[key] : key; }
-  function fmtNum(v) { return (v == null ? 0 : v).toLocaleString(lang === "fr" ? "fr-FR" : "en-US"); }
-  function fmtDate(iso) {
+  function fmtNum(v) { return (v == null ? 0 : v).toLocaleString("en-US"); }
+  function fmtDate(iso) {                            // "2026-10-06" -> "6 Oct 2026"
     var p = String(iso).split("-");
-    if (lang === "fr") return new Date(iso + "T00:00:00Z").toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
     return parseInt(p[2], 10) + " " + EN_MONTHS[parseInt(p[1], 10) - 1] + " " + p[0];
-  }
-  function fmtBuilt(iso) {
-    var d = new Date(iso);
-    if (isNaN(d)) return "";
-    var loc = lang === "fr" ? "fr-FR" : "en-US";
-    return d.toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) + ", " +
-      d.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false }) + " UTC";
   }
   function num(v) { if (v === undefined || v === null || v === "") return null; var n = Number(v); return isFinite(n) ? n : null; }
 
@@ -162,8 +164,8 @@
 
   // ---- map ----------------------------------------------------------------
   function classColor(v) {
-    var cl = D.site.classes, k;
-    if (v == null || v <= 0) return D.site.null_color;
+    var cl = CLASSES, k;
+    if (v == null || v <= 0) return NULL_COLOR;
     for (k = 0; k < cl.length; k++) if (v >= cl[k].min && (cl[k].max == null || v <= cl[k].max)) return cl[k].color;
     return cl[cl.length - 1].color;
   }
@@ -185,18 +187,18 @@
     var p = layer.feature.properties, name = "<strong>" + esc(p.name || p.nom) + "</strong><br/>";
     if (mode === "recency") {
       var cat = recAt(p.nom, idx), days = recDays[p.nom] ? recDays[p.nom][idx] : -1;
-      return name + ui("trends_recency_cat" + cat) + "<br/>" +
-        (cat === 4 || days < 0 ? ui("trends_recency_tooltip_never") : ui("trends_recency_tooltip_days").replace("{days}", days));
+      return name + REC_LABEL[cat] + "<br/>" +
+        (cat === 4 || days < 0 ? "No confirmed case yet" : "Last confirmed case: " + days + " days ago");
     }
     var v = valueAt(p.nom, idx);
-    return name + (v == null ? ui("layer_no_data") : ui("layer_label") + ": " + fmtNum(v));
+    return name + (v == null ? NO_DATA : LAYER_LABEL + ": " + fmtNum(v));
   }
 
   function pane(name, z) { map.createPane(name); map.getPane(name).style.zIndex = z; }
 
   function buildMap() {
     map = L.map("map", { zoomControl: false, zoomSnap: 0.25 });
-    map.fitBounds(D.site.initial_bounds, { animate: false });
+    map.fitBounds(BOUNDS, { animate: false });
     window.dashboardMap = map;
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
       attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ", maxZoom: 16
@@ -246,20 +248,20 @@
 
   // ---- text / legends -----------------------------------------------------
   function classRows() {
-    return D.site.classes.map(function (c) {
+    return CLASSES.map(function (c) {
       return "<div class='legend-class-row'><span class='swatch' style='background:" + c.color + "'></span>" +
         "<span class='legend-class-label'>" + esc(c.label) + "</span></div>";
     }).join("");
   }
-  function nullSwatch() {
-    return "<span class='swatch' style='background:" + D.site.null_color + "'></span>" + esc(ui("no_cases"));
+  function nullRow() {
+    return "<div class='legend-class-row'><span class='swatch' style='background:" + NULL_COLOR + "'></span>" +
+      "<span class='legend-class-label'>" + NO_CASES + "</span></div>";
   }
 
   function renderLegends() {
     if (!TRENDS) {
-      $("legend-title").innerHTML = "<strong>" + esc(ui("layer_label")) + "</strong>";
-      $("legend-classes").innerHTML = classRows();
-      $("legend-gray").innerHTML = nullSwatch();
+      $("legend-title").innerHTML = "<strong>" + LAYER_LABEL + "</strong>";
+      $("legend-classes").innerHTML = classRows() + nullRow();
       var present = {};
       D.programmes.features.forEach(function (f) { present[f.properties.program] = true; });
       $("legend-programs").innerHTML = Object.keys(PROGRAMMES).filter(function (k) { return present[k]; }).map(function (k) {
@@ -267,72 +269,36 @@
           ";background:transparent'></span><span class='legend-class-label'>" + k + " programme area</span></div>";
       }).join("");
     } else {
-      $("trends-class-legend").innerHTML = classRows() +
-        "<div class='legend-class-row'><span class='swatch' style='background:" + D.site.null_color + "'></span>" +
-        "<span class='legend-class-label'>" + esc(ui("no_cases")) + "</span></div>";
+      $("trends-class-legend").innerHTML = classRows() + nullRow();
       $("recency-swatches").innerHTML = [1, 2, 3, 4].map(function (c) {
         return "<div class='recency-swatch'><span class='recency-chip' style='background:" + REC_FILL[c] + "'></span><span>" +
-          esc(ui("trends_recency_cat" + c)) + "</span></div>";
+          REC_LABEL[c] + "</span></div>";
       }).join("");
     }
   }
 
   function renderHeader() {
-    var T = ui("title_sub"), tr = ui("tracker"), site = D.site;
-    var link = "style='color:#9fcdfb;text-decoration:underline'";
     var asof = fmtDate(national.date);
-    var sitrep = T.latest + " <a href='" + esc(site.insp_sitrep_url) + "' target='_blank' rel='noopener' " + link + ">" +
-      T.insp_sitrep + "</a> - " + asof;
-    if (site.data_build && site.data_build.tag) {
-      sitrep += " · " + T.built_on + " <a href='" + esc(site.data_build.url) + "' target='_blank' rel='noopener' " + link + ">" +
-        esc(site.data_build.tag) + "</a>";
-    }
-    var built = fmtBuilt(site.dashboard_built_at);
-    var updated = built ? T.dashboard_updated + " " + built : "";
-    var sw = ["en", "fr"].map(function (l) {
-      return "<button type='button' class='lang-btn" + (l === lang ? " active" : "") + "' data-lang='" + l +
-        "' aria-pressed='" + (l === lang) + "'>" + (l === "en" ? "English" : "Français") + "</button>";
-    }).join("<span class='lang-sep' aria-hidden='true'>|</span>");
-    $("title-sub").innerHTML = sitrep + "<br/>" + (updated ? updated + " · " : "") +
-      "<span class='lang-switch' role='group' aria-label='" + esc(ui("aria_language")) + "'>" + sw + "</span>";
-    $("header-updated-line").innerHTML = updated;
+    var sitrep = "Latest <a href='" + INSP_URL + "' target='_blank' rel='noopener' style='color:#9fcdfb;text-decoration:underline'>" +
+      "INSP Sit Rep</a> - " + asof;
+    $("title-sub").innerHTML = sitrep;
     $("header-info-popup-body").innerHTML = sitrep;
-    document.querySelectorAll("#header-narrow-row .lang-btn").forEach(function (b) {
-      var on = b.dataset.lang === lang;
-      b.classList.toggle("active", on); b.setAttribute("aria-pressed", on);
-    });
-
     $("tracker").innerHTML =
-      "<div class='stats-block'><div class='global-title'>" + tr.eyebrow.replace("{date}", esc(asof)) + "</div>" +
+      "<div class='stats-block'><div class='global-title'>confirmed \u00b7 cumulative to " + asof + "</div>" +
       "<div class='global-row'>" +
       ["cases", "deaths", "recovered"].map(function (k) {
-        return "<div class='global-cell " + k + "'><div class='num'>" + fmtNum(national[k]) + "</div><div class='sub'>" + tr[k] + "</div></div>";
+        return "<div class='global-cell " + k + "'><div class='num'>" + fmtNum(national[k]) + "</div><div class='sub'>" + k + "</div></div>";
       }).join("") + "</div></div>";
-  }
-
-  function renderText() {
-    document.documentElement.lang = lang;
-    document.title = ui("title");
-    $("page-heading").textContent = ui("heading");
-    document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = ui(el.dataset.i18n); });
-    $("header-info-btn").setAttribute("aria-label", ui("aria_header_info"));
-    var m = D.modals[lang];
-    $("methods-content").innerHTML = m.methods;
-    $("terms-content").innerHTML = m.terms;
-    $("terms-updated").textContent = m.terms_updated;
-    renderHeader();
-    renderLegends();
-    if (TRENDS) { syncPlayButton(); updateDateLabel(); }
   }
 
   // ---- trend slider -------------------------------------------------------
   function updateDateLabel() {
-    $("trends-date-label").textContent = ui("trends_as_of").replace("—", fmtDate(dates[idx]));
+    $("trends-date-label").textContent = "As of " + fmtDate(dates[idx]);
   }
   function syncPlayButton() {
     var b = $("trends-play-btn");
     b.textContent = timer ? "⏸" : "▶";
-    b.setAttribute("aria-label", ui(timer ? "trends_pause" : "trends_play"));
+    b.setAttribute("aria-label", timer ? "Pause" : "Play");
   }
   function setIdx(i) {
     idx = Math.max(0, Math.min(i, dates.length - 1));
@@ -382,7 +348,7 @@
       if (major) {
         var lab = document.createElement("span");
         lab.className = "trends-tick-label";
-        lab.textContent = dt.toLocaleDateString(lang, sparse ? { day: "numeric", month: "short", timeZone: "UTC" } : { month: "short", timeZone: "UTC" });
+        lab.textContent = dt.toLocaleDateString("en", sparse ? { day: "numeric", month: "short", timeZone: "UTC" } : { month: "short", timeZone: "UTC" });
         b.appendChild(lab);
       }
       wrap.appendChild(b);
@@ -412,15 +378,6 @@
 
   // ---- page chrome --------------------------------------------------------
   function wireChrome() {
-    document.addEventListener("click", function (ev) {
-      var lb = ev.target.closest(".lang-btn");
-      if (lb && lb.dataset.lang !== lang) {
-        lang = lb.dataset.lang;
-        try { localStorage.setItem("bdbv-dashboard-lang", lang); } catch (e) {}
-        renderText();
-        if (TRENDS) buildTicks();
-      }
-    });
     // modals
     function modal(id, openers, closeId) {
       var m = $(id);
@@ -457,16 +414,21 @@
 
   Promise.all([
     getJSON("data/geo/zones.geojson"), getJSON("data/geo/provinces.geojson"), getJSON("data/geo/country.geojson"),
-    getJSON("data/geo/programmes.geojson"), getJSON("data/site.json"), getJSON("data/i18n.json"), getJSON("data/modals.json"),
+    getJSON("data/geo/programmes.geojson"), getJSON("data/modals.json"),
     getText("data/daily/manifest.csv").then(parseCSV)
   ]).then(function (r) {
-    D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], site: r[4], i18n: r[5], modals: r[6] };
-    return loadFrames(pickEntries(r[7]));
+    D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4] };
+    return loadFrames(pickEntries(r[5]));
   }).then(function () {
     buildMap();
     wireChrome();
     if (TRENDS) wireTrends();
-    renderText();
+    $("methods-content").innerHTML = D.modals.methods;
+    $("terms-content").innerHTML = D.modals.terms;
+    $("terms-updated").textContent = D.modals.terms_updated;
+    renderHeader();
+    renderLegends();
+    if (TRENDS) updateDateLabel();
     document.dispatchEvent(new Event("dashboard:ready"));
     if (TRENDS) play();                       // start from the first frame every time the page opens
   }).catch(fail);

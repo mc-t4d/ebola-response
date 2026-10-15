@@ -7,25 +7,19 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
-<body class="view-map" data-overlays="towns epicentre">
+<body class="view-map" data-overlays="southsudan roads towns epicentre">
 <header id="site-header">
   <div id="site-header-left">
     <h1 id="page-heading">DRC Ebola Bundibugyo - Epidemic Intelligence Dashboard</h1>
     <div class="sub" id="title-sub"></div>
-    <!-- Narrow screens: #title-sub is hidden; this row shows the "updated" line and an info popup instead. -->
+    <!-- Narrow screens: #title-sub is hidden; this row holds an info popup instead. -->
     <div id="header-narrow-row">
-      <div class="sub" id="header-updated-line"></div>
-      <span class="lang-switch sub" role="group" aria-label="Language">
-        <button type="button" class="lang-btn active" data-lang="en" aria-pressed="true">English</button>
-        <span class="lang-sep" aria-hidden="true">|</span>
-        <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">Français</button>
-      </span>
       <button type="button" id="header-info-btn" aria-haspopup="true" aria-expanded="false" aria-label="More information">ⓘ</button>
       <div id="header-info-popup" role="tooltip" aria-hidden="true">
         <div id="header-info-popup-body"></div>
         <div id="header-info-popup-links">
-          <button type="button" id="header-methods-btn" class="link-btn" data-i18n="methods_btn">Contributors, Data, and Methods</button>
-          <button type="button" id="header-terms-btn" class="link-btn" data-i18n="terms_btn">Terms of Use</button>
+          <button type="button" id="header-methods-btn" class="link-btn">Contributors, Data, and Methods</button>
+          <button type="button" id="header-terms-btn" class="link-btn">Terms of Use</button>
         </div>
       </div>
     </div>
@@ -34,16 +28,16 @@
 </header>
 <nav id="page-tabs">
   <div id="view-tabs" class="view-tabs">
-    <a href="index.html" class="view-tab active" data-view="map" data-i18n="view_map">Current Cumulative</a>
-    <a href="trends.html" class="view-tab" data-view="trends" data-i18n="view_trends">Daily Trend</a>
-    <a href="trend21.html" class="view-tab" data-view="trend21" data-i18n="view_trend21">21-Day Trend</a>
+    <a href="index.html" class="view-tab active" data-view="map">Current Cumulative</a>
+    <a href="trends.html" class="view-tab" data-view="trends">Daily Trend</a>
+    <a href="trend21.html" class="view-tab" data-view="trend21">21-Day Trend</a>
   </div>
 </nav>
 <div id="methods-modal" class="modal" role="dialog" aria-modal="true">
   <div class="sheet">
     <div class="sheet-head">
       <button class="close" id="methods-close" aria-label="Close">✕</button>
-      <h2 data-i18n="methods_modal_title">Contributors, Data, and Methods</h2>
+      <h2>Contributors, Data, and Methods</h2>
     </div>
     <div class="sheet-body"><div id="methods-content"></div></div>
   </div>
@@ -52,7 +46,7 @@
   <div class="sheet">
     <div class="sheet-head">
       <button class="close" id="terms-close" aria-label="Close">✕</button>
-      <h2 data-i18n="terms_modal_title">Terms of Use</h2>
+      <h2>Terms of Use</h2>
     </div>
     <div class="sheet-body">
       <div id="terms-updated"></div>
@@ -66,7 +60,7 @@
   <div class="panel-body">
     <div class="checkbox-row">
       <input type="checkbox" id="show-programmes" checked />
-      <label for="show-programmes" data-i18n="show_programmes">Show programme areas</label>
+      <label for="show-programmes">Show programme areas</label>
     </div>
   </div>
 </div>
@@ -77,14 +71,13 @@
   </div>
   <div class="panel-body">
     <div class="legend-classes" id="legend-classes"></div>
-    <div id="legend-gray"></div>
     <div class="legend-classes" id="legend-programs"></div>
   </div>
 </div>
 <div id="view-switcher">
   <div id="footer-links">
-    <button id="methods-btn" class="link-btn" type="button" data-i18n="methods_btn">Contributors, Data, and Methods</button>
-    <button id="terms-btn"   class="link-btn" type="button" data-i18n="terms_btn">Terms of Use</button>
+    <button id="methods-btn" class="link-btn" type="button">Contributors, Data, and Methods</button>
+    <button id="terms-btn"   class="link-btn" type="button">Terms of Use</button>
   </div>
 </div>
 </div>

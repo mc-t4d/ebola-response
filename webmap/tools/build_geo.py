@@ -7,6 +7,7 @@
   programmes.geojson  zones carrying a Program (RESET / IERDC / SAFER)
   south_sudan.geojson South Sudan border (SSD_Admin_Boundaries_Counties_Payams.gpkg, admin0)
   south_sudan_counties.geojson  South Sudan counties (same file, admin2)
+  roads.geojson       DRC national road network (osm_rdc_reseau_routier_national_230205.gpkg)
 
 data/geo/zone_names.csv ties each GRID3 zone (zs_uid) to the `nom` used in the
 daily CSVs; edit it if a zone is renamed. Needs geopandas + shapely>=2.1.
@@ -70,6 +71,10 @@ def main():
     write("south_sudan_counties.geojson", [
         {"type": "Feature", "properties": {"county": n, "state": st}, "geometry": geom_json(g)}
         for n, st, g in zip(cty.adm2_name, cty.adm1_name, cs2)])
+    rd = gpd.read_file(VEC / "osm_rdc_reseau_routier_national_230205.gpkg").to_crs(4326)
+    rs = shapely.simplify(rd.geometry.make_valid().values, TOL / 2, preserve_topology=True)
+    write("roads.geojson", [{"type": "Feature", "properties": {"ref": r.ref or "", "name": r["name"] or ""}, "geometry": geom_json(g)}
+                            for (_, r), g in zip(rd.iterrows(), rs)])
     print(f"zones {len(feats)}, programmes {len(prog)}, provinces {len(prov)}")
 
 

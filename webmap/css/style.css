@@ -15,7 +15,6 @@ body {
 }
 :root {
   --view-chrome-height: 32px;
-  --layer-panel-width: min(340px, calc(100vw - 24px));
   --link-hover: var(--maroon);
   --bg: #f8f8f8;
   --card: #ffffff;
@@ -184,11 +183,19 @@ body {
 #controls {
   top:12px;
   left:12px;
-  width:var(--layer-panel-width);
-  max-width:var(--layer-panel-width);
+  width:max-content;
+  max-width:calc(100vw - 24px);
+  padding:9px 14px;
 }
-#controls .panel-body {
-  min-width:0;
+#controls .checkbox-row, #controls label {
+  margin:0;
+}
+#controls input[type="checkbox"] {
+  width:16px;
+  height:16px;
+  margin:0;
+  accent-color:var(--brand-red);
+  cursor:pointer;
 }
 #legend {
   bottom:calc(var(--view-chrome-height) + 12px);
@@ -485,10 +492,6 @@ body.trends-slider-busy .leaflet-interactive {
   #legend {
     max-width:60vw;
   }
-  #controls.collapsed {
-    width:auto;
-    max-width:min(160px, calc(60vw - 18px));
-  }
 }
 @media (max-height: 500px) {
   .panel {
@@ -619,30 +622,6 @@ button {
   border-radius:4px;
   font-size:12px;
   box-sizing:border-box;
-}
-.lang-switch {
-  display:inline-flex;
-  align-items:baseline;
-  gap:6px;
-  white-space:nowrap;
-}
-.lang-switch .lang-btn {
-  background:none !important;
-  border:none !important;
-  border-radius:0;
-  padding:0;
-  font-size:inherit;
-  font-family:inherit;
-  line-height:inherit;
-  cursor:pointer;
-  text-decoration:underline;
-  text-underline-offset:2px;
-}
-.lang-switch .lang-btn.active {
-  font-weight:700;
-  text-decoration:none;
-  padding-bottom:1px;
-  cursor:default;
 }
 label {
   display:block;
@@ -812,9 +791,6 @@ button {
 .checkbox-row label {
   color: var(--ink) !important;
 }
-#legend-gray {
-  color: var(--muted) !important;
-}
 .link-btn {
   background: var(--card) !important;
   color: var(--terracotta) !important;
@@ -848,9 +824,9 @@ button {
   color: var(--ink) !important;
 }
 .view-tab.active {
-  color: var(--terracotta) !important;
-  border-color: var(--terracotta) !important;
-  background: rgba(155, 125, 78, 0.12) !important;
+  color: var(--ink) !important;
+  border-color: var(--muted) !important;
+  background: #e1e1e1 !important;
 }
 #footer-links .link-btn {
   background: none !important;
@@ -860,19 +836,6 @@ button {
 #footer-links .link-btn:hover {
   background: none !important;
   color: var(--link-hover) !important;
-}
-.lang-switch .lang-btn {
-  color: var(--link) !important;
-}
-.lang-switch .lang-btn:hover {
-  color: var(--link-hover) !important;
-}
-.lang-switch .lang-btn.active {
-  color: var(--ink) !important;
-  border-bottom: 2px solid var(--terracotta) !important;
-}
-.lang-switch .lang-sep {
-  color: var(--border) !important;
 }
 .modal .sheet {
   background: var(--card) !important;
@@ -1186,6 +1149,7 @@ body.view-trends #map {
 }
 #controls label {
   font-size: 13px;
+  cursor: pointer;
 }
 body.view-trends #trends-legend {
   display: block;
@@ -1344,4 +1308,7 @@ body.view-trends #trends-slider {
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--brand-dark-gray);
+}
+.road-legend {
+  margin: 6px 0 0;
 }

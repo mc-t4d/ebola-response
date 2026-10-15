@@ -5,6 +5,7 @@
  *   corridors  animated transmission routes + border crossings + route legend
  *   towns      main towns and cities (dots with labels)
  *   epicentre  asterisk icons on Bunia and Rwampara, "Outbreak Epicenter"
+ *   roads      DRC national roads as a red line (data/geo/roads.geojson, from the OSM road gpkg)
  *   southsudan South Sudan border + counties (data/geo/south_sudan*.geojson), under the zones
  *
  * Routes keep the gpkg colour (color_hex). Cross-border / transit routes are
@@ -216,12 +217,37 @@
       });
   }
 
+  // National road network: red line with a white casing so it reads on every case colour.
+  function drawRoads(map) {
+    pane(map, "roads", 560);
+    return getJSON("data/geo/roads.geojson").then(function (gj) {
+      L.geoJSON(gj, { pane: "roads", interactive: false,
+        style: { color: "#ffffff", weight: 4, opacity: 0.85, lineCap: "round", lineJoin: "round" } }).addTo(map);
+      L.geoJSON(gj, { pane: "roads", style: { color: "#c8102e", weight: 2, opacity: 1, lineCap: "round", lineJoin: "round" },
+        onEachFeature: function (f, layer) {
+          layer.bindTooltip(esc(f.properties.ref) + (f.properties.name ? " \u2013 " + esc(f.properties.name) : ""), { sticky: true });
+        } }).addTo(map);
+      var host = document.querySelector("#legend .panel-body") || document.getElementById("trends-legend");
+      if (host) {
+        var row = document.createElement("div");
+        row.className = "legend-classes road-legend";
+        row.innerHTML = "<div class='epicentre-row'><svg width='26' height='10' aria-hidden='true'>" +
+          "<line x1='1' y1='5' x2='25' y2='5' stroke='#fff' stroke-width='5' stroke-linecap='round'/>" +
+          "<line x1='1' y1='5' x2='25' y2='5' stroke='#c8102e' stroke-width='2.5' stroke-linecap='round'/></svg><span>National road</span></div>";
+        var epi = document.getElementById("legend-epicentre");        // map page: road row goes under the epicentre row
+        if (host.id !== "trends-legend") host.insertBefore(row, epi ? epi.nextSibling : host.firstChild);
+        else host.appendChild(row);
+      }
+    });
+  }
+
   function init() {
     var map = window.dashboardMap;
     var want = {};
     (document.body.dataset.overlays || "corridors towns").split(/\s+/).forEach(function (k) { if (k) want[k] = true; });
     if (!map) { console.warn("overlays: map not available"); return; }
     if (want.southsudan) drawSouthSudan(map).catch(function (err) { console.warn("South Sudan not drawn (" + err.message + ")"); });
+    if (want.roads) drawRoads(map).catch(function (err) { console.warn("roads not drawn (" + err.message + ")"); });
     fetch("data/corridors.geojson", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (fc) { draw(map, fc, want); })
