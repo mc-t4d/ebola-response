@@ -1266,9 +1266,6 @@ body.view-trends #trends-slider {
   font-weight: 400;
   color: var(--brand-dark-gray);
 }
-.towns-zoomed-out .town-label-marker {
-  display: none;
-}
 .town-hover-tip {
   font-family: var(--brand-font-label);
   font-size: 12px;
@@ -1383,7 +1380,4 @@ body.view-trends #trends-slider {
   line-height: 12px;
   color: var(--brand-black);
   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
-}
-.zone-labels-hidden .zone-label {
-  display: none;
 }

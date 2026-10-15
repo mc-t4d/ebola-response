@@ -169,9 +169,6 @@
                           html: "<span>" + esc(p.name) + "</span>", iconSize: [0, 0] })
       }).addTo(map);
     });
-    // labels only from zoom 7 up, so the national view is not cluttered
-    function sync() { map.getContainer().classList.toggle("towns-zoomed-out", map.getZoom() < 7); }
-    map.on("zoomend", sync); sync();
   }
 
   function drawEpicentre(map, towns) {

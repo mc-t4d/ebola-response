@@ -24,8 +24,9 @@
   var TRENDS = B.classList.contains("view-trends");
   var WEEKLYPAGE = B.classList.contains("view-weekly");   // weekly new-case growth page
   var STEP = parseInt(B.dataset.sliderStep || "1", 10) || 1;
-  var PLAY_MS = STEP > 1 ? 1800 : 700;          // ms per frame: 21-day page / daily page
-  var WEEKLY_MS = 1500;                          // ms per frame in the Daily Trend page's Weekly mode
+  var PLAY_MS = STEP > 1 ? 1800 : 400;           // ms per frame: 21-day page / daily page
+  var WEEKLY_MS = 800;                           // ms per frame in the Daily Trend page's Weekly mode
+  var WEEKPAGE_MS = 1500;                        // ms per frame on the Weekly Case Growth page
   var NEAR = 14, MID = 42;                       // recency thresholds (days)
   var STROKE = "#54585a", STROKE_HOVER = "#231f20";
   var REC_FILL = { 1: "#b2182b", 2: "#ef8a62", 3: "#fddbc7", 4: "#e0e0e0" };
@@ -251,8 +252,6 @@
       labelMarkers[f.properties.nom] = L.marker(labelPoint(f.geometry), { pane: "zone-labels", interactive: false, keyboard: false,
         icon: L.divIcon({ className: "zone-label", html: "<span>" + esc(f.properties.name || f.properties.nom) + "</span>", iconSize: [0, 0] }) });
     });
-    var sync = function () { map.getContainer().classList.toggle("zone-labels-hidden", map.getZoom() < 6); };
-    map.on("zoomend", sync); sync();
   }
   function updateZoneLabels() {
     if (!labelGroup) return;
@@ -384,12 +383,19 @@
     var end = dates[idx], start = new Date(Date.parse(end) - 6 * 864e5).toISOString().slice(0, 10);
     var dc = natC[idx] - (idx ? natC[idx - 1] : 0), dd = natD[idx] - (idx ? natD[idx - 1] : 0);
     el.innerHTML = "<div class='dyn-title'>Weekly New Case Growth</div><div><i>" + longDate(start) + " to " + longDate(end) + "</i></div>" +
-      "<div><b>" + signed(dc) + "</b> <i>new confirmed cases,</i> <b>" + signed(dd) + "</b> <i>new deaths</i></div>";
+      "<div><b>" + fmtNum(natC[idx]) + "</b> <i>total cases,</i> <b>" + signed(dc) + "</b> <i>new confirmed cases,</i> <b>" + signed(dd) + "</b> <i>new deaths</i></div>";
   }
   function renderDynamics() {
     if (WEEKLYPAGE) return renderWeekTitle();
     var el = $("dynamics");
     if (!el) return;
+    if (STEP > 1) {                                   // 21-Day page: day number, totals, affected zones
+      var zn = zoneCount[idx] || 0;
+      el.innerHTML = "<div class='dyn-title'>Day " + (dayNums[idx] === null ? "" : dayNums[idx]) + "</div>" +
+        "<div><b>" + fmtNum(natC[idx]) + "</b> <i>total cases,</i> <b>" + fmtNum(natD[idx]) + "</b> <i>deaths</i></div>" +
+        "<div><b>" + fmtNum(zn) + "</b> <i>affected health zone" + (zn === 1 ? "" : "s") + "</i></div>";
+      return;
+    }
     var at = function (arr, i) { return i < 0 ? 0 : (arr[i] == null ? 0 : arr[i]); };   // before Day 0 everything is 0
     // frame index of the date n days before the current one (-1 = before the first day)
     var back = function (n) {
@@ -454,7 +460,7 @@
       if (p >= shown.length - 1) return stop();
       setIdx(shown[p + 1]);
       if (p + 1 >= shown.length - 1) stop();
-    }, weekly || WEEKLYPAGE ? WEEKLY_MS : PLAY_MS);
+    }, WEEKLYPAGE ? WEEKPAGE_MS : (weekly ? WEEKLY_MS : PLAY_MS));
     syncPlayButton();
   }
 
