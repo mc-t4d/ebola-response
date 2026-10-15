@@ -45,12 +45,14 @@
   // ---- legends ------------------------------------------------------------
   function mapLegendRow() {                       // Current Cumulative: add to the existing legend card
     var body = document.querySelector("#legend .panel-body");
-    if (!body) return;
     var d = document.createElement("div");
     d.id = "legend-epicentre";
     d.className = "legend-classes";
     d.innerHTML = epicentreRow();
-    body.insertBefore(d, body.firstChild);     // top of the list
+    if (body) { body.insertBefore(d, body.firstChild); return; }     // top of the list
+    // trend pages: under the class / recency legend, above the road row
+    var anchor = document.getElementById("trends-recency-legend") || document.getElementById("trends-class-legend");
+    if (anchor) anchor.parentNode.insertBefore(d, anchor.nextSibling);
   }
 
   function routeLegend(routes, withEpicentre) {
@@ -207,14 +209,14 @@
     return Promise.all([getJSON("data/geo/south_sudan.geojson"), getJSON("data/geo/south_sudan_counties.geojson")])
       .then(function (r) {
         L.geoJSON(r[0], { pane: "south-sudan", interactive: false,
-          style: { color: "#231f20", weight: 2.2, opacity: 1, fillColor: "#ececec", fillOpacity: 1 } }).addTo(map);
+          style: { color: "#231f20", weight: 2.2, opacity: 1, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);   // same grey as the DRC provinces without zones
         L.geoJSON(r[1], { pane: "south-sudan",
           filter: function (f) { return SS_COUNTIES.indexOf(f.properties.county) >= 0; },
-          style: { color: "#54585a", weight: 0.8, opacity: 0.8, fillColor: "#ececec", fillOpacity: 0 },
+          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },   // same look as DRC zones without cases
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });
-            layer.on("mouseover", function () { layer.setStyle({ fillOpacity: 0.5, fillColor: "#d4d4d4", weight: 1.4 }); });
-            layer.on("mouseout", function () { layer.setStyle({ fillOpacity: 0, weight: 0.8 }); });
+            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); layer.bringToFront(); });
+            layer.on("mouseout", function () { layer.setStyle({ color: "#54585a", opacity: 0.85, weight: 1.2 }); });
           } }).addTo(map);
         L.marker([4.6, 31.2], { pane: "south-sudan", interactive: false, keyboard: false,
           icon: L.divIcon({ className: "country-label", html: "<span>South Sudan</span>", iconSize: [0, 0] }) }).addTo(map);
