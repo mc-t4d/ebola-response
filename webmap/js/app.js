@@ -229,6 +229,40 @@
     return name + (v == null ? NO_DATA : LAYER_LABEL + ": " + fmtNum(v));
   }
 
+  // Zone name labels (not on the 21-Day page): shown for health zones with reported cases at the current frame.
+  var labelGroup, labelMarkers = {};
+  function ringCentroid(ring) {                       // [area, [lng, lat]] of a polygon ring
+    var a = 0, cx = 0, cy = 0, i, p, q, f;
+    for (i = 0; i < ring.length - 1; i++) {
+      p = ring[i]; q = ring[i + 1]; f = p[0] * q[1] - q[0] * p[1];
+      a += f; cx += (p[0] + q[0]) * f; cy += (p[1] + q[1]) * f;
+    }
+    return a ? [Math.abs(a) / 2, [cx / (3 * a), cy / (3 * a)]] : [0, ring[0]];
+  }
+  function labelPoint(geom) {                         // centroid of the largest polygon
+    var polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates, best = null;
+    polys.forEach(function (poly) { var c = ringCentroid(poly[0]); if (!best || c[0] > best[0]) best = c; });
+    return [best[1][1], best[1][0]];
+  }
+  function buildZoneLabels() {
+    pane("zone-labels", 600);
+    labelGroup = L.layerGroup().addTo(map);
+    D.zones.features.forEach(function (f) {
+      labelMarkers[f.properties.nom] = L.marker(labelPoint(f.geometry), { pane: "zone-labels", interactive: false, keyboard: false,
+        icon: L.divIcon({ className: "zone-label", html: "<span>" + esc(f.properties.name || f.properties.nom) + "</span>", iconSize: [0, 0] }) });
+    });
+    var sync = function () { map.getContainer().classList.toggle("zone-labels-hidden", map.getZoom() < 6); };
+    map.on("zoomend", sync); sync();
+  }
+  function updateZoneLabels() {
+    if (!labelGroup) return;
+    Object.keys(labelMarkers).forEach(function (nom) {
+      var s = cum[nom], on = !!s && s[idx] > 0, m = labelMarkers[nom];
+      if (on && !labelGroup.hasLayer(m)) labelGroup.addLayer(m);
+      if (!on && labelGroup.hasLayer(m)) labelGroup.removeLayer(m);
+    });
+  }
+
   function pane(name, z) { map.createPane(name); map.getPane(name).style.zIndex = z; }
 
   function buildMap() {
@@ -257,6 +291,7 @@
       }
     }).addTo(map);
     map.on("zoomend", function () { geoLayer.setStyle(zoneStyle); });
+    if (STEP === 1) { buildZoneLabels(); updateZoneLabels(); }
 
     // province lines (trend pages only), country border, programme outlines (map page)
     if (TRENDS) {
@@ -401,6 +436,7 @@
     });
     renderDynamics();
     geoLayer.setStyle(zoneStyle);
+    updateZoneLabels();
   }
   function stop() {
     if (timer) clearInterval(timer);

@@ -1367,3 +1367,23 @@ body.view-trends #trends-slider {
 #trends-legend .exist-row .swatch {
   border: 2px solid var(--ink);
 }
+.zone-label {
+  background: none;
+  border: 0;
+  pointer-events: none;
+}
+.zone-label span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: var(--brand-font-label);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 12px;
+  color: var(--brand-black);
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
+}
+.zone-labels-hidden .zone-label {
+  display: none;
+}
