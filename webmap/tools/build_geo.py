@@ -4,7 +4,7 @@
   zones.geojson       519 health zones: nom (map key), name, province, program
   provinces.geojson   26 provinces (admin1)
   country.geojson     DRC border (admin0)
-  programmes.geojson  zones carrying a Program (RESET / IERDC / SAFER)
+  programmes.geojson  zones carrying a Program (RESET / IERDC; SAFER is merged into IERDC)
   south_sudan.geojson South Sudan border (SSD_Admin_Boundaries_Counties_Payams.gpkg, admin0)
   south_sudan_counties.geojson  South Sudan counties (same file, admin2)
   roads.geojson       DRC national road network (osm_rdc_reseau_routier_national_230205.gpkg)
@@ -45,6 +45,7 @@ def main():
     for (_, r), g in zip(zones.iterrows(), simp):
         n = names[r.zs_uid]
         program = None if r.Program is None or str(r.Program) in ("None", "nan") else str(r.Program)
+        if program == "SAFER": program = "IERDC"       # SAFER zone is shown as part of IERDC
         feats.append({"type": "Feature", "geometry": geom_json(g),
                       "properties": {"nom": n["nom"], "name": n["name"], "province": n["province"], "program": program}})
         if program:

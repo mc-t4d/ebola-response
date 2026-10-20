@@ -58,6 +58,14 @@
 <div id="viewport-area">
 <div id="map"></div>
 <div id="dynamics" class="panel" aria-live="polite"></div>
+<div id="controls" class="panel">
+  <div class="panel-body">
+    <div class="checkbox-row">
+      <input type="checkbox" id="show-programmes" />
+      <label for="show-programmes">Show programme areas</label>
+    </div>
+  </div>
+</div>
 <div id="trends-legend" class="panel">
   <div id="trends-legend-title"><strong>Confirmed cases (cumulative)</strong></div>
   <div id="trends-mode-toggle" role="group" aria-label="Map colouring mode">
@@ -72,6 +80,7 @@
     <p id="trends-recency-desc">Health zones coloured by time since their most recent confirmed case, based on INSP sitrep report dates (not symptom onset), as of the slider date.</p>
     <div class="recency-swatches" id="recency-swatches"></div>
   </div>
+  <div class="legend-classes" id="legend-programs" style="display:none"></div>
 </div>
 <div id="trends-slider" class="panel">
   <div id="trends-play-row">
@@ -81,10 +90,6 @@
   <div id="trends-ticks-row"><span id="trends-ticks-spacer"></span><div id="trends-ticks"></div></div>
 </div>
 <div id="view-switcher">
-  <div id="footer-links">
-    <button id="methods-btn" class="link-btn" type="button">Contributors, Data, and Methods</button>
-    <button id="terms-btn"   class="link-btn" type="button">Terms of Use</button>
-  </div>
 </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

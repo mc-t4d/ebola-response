@@ -141,13 +141,17 @@ date,day,source,file,sitrep_no,zones,zone_cases_sum,unattributed_cases,national_
 2026-09-30,139,INRB,daily_2026-09-30_INRB.csv,,63,8300,0,8300,4018,2162,0,,False,
 2026-10-01,140,INRB,daily_2026-10-01_INRB.csv,,63,8376,0,8376,4042,2182,0,,False,
 2026-10-02,141,INRB,daily_2026-10-02_INRB.csv,,64,8442,0,8442,4080,2213,0,,False,
-2026-10-03,142,INRB,daily_2026-10-03_INRB.csv,,64,8442,,,,,,not in INRB; no SitRep published for this date; PROVISIONAL: zone values carried forward from 2026-10-02,True,2026-10-02
+2026-10-03,142,INRB,daily_2026-10-03_INRB.csv,,64,8544,0,8544,4114,2229,0,,False,
 2026-10-04,143,INRB,daily_2026-10-04_INRB.csv,,64,8603,0,8603,4148,2235,0,,False,
 2026-10-05,144,INRB,daily_2026-10-05_INRB.csv,,64,8665,0,8665,4178,2259,0,,False,
-2026-10-06,145,Sitrep,daily_2026-10-06_Sitrep.csv,145,64,8728,0,8728,4205,2269,0,not in INRB,False,
+2026-10-06,145,INRB,daily_2026-10-06_INRB.csv,,64,8728,0,8728,4205,2269,0,,False,
 2026-10-07,146,Sitrep,daily_2026-10-07_Sitrep.csv,146,64,8787,0,8787,4242,2292,0,not in INRB,False,
-2026-10-08,147,Sitrep,daily_2026-10-08_Sitrep.csv,147,65,8845,0,8845,4275,2320,0,"not in INRB; no GRID3 polygon for Dakwa (1): kept in the CSV, not drawn on the map",False,
-2026-10-09,148,Sitrep,daily_2026-10-09_Sitrep.csv,148,65,8914,0,8914,4315,2338,0,"not in INRB; no GRID3 polygon for Dakwa (1): kept in the CSV, not drawn on the map",False,
-2026-10-10,149,Sitrep,daily_2026-10-10_Sitrep.csv,149,65,8978,0,8978,4336,2356,0,"not in INRB; no GRID3 polygon for Dakwa (1): kept in the CSV, not drawn on the map",False,
-2026-10-11,150,Sitrep,daily_2026-10-11_Sitrep.csv,150,65,9066,0,9066,4381,2389,0,"not in INRB; no GRID3 polygon for Dakwa (1): kept in the CSV, not drawn on the map",False,
-2026-10-12,151,Sitrep,daily_2026-10-12_Sitrep.csv,151,65,9144,0,9144,4410,2418,0,"not in INRB; no GRID3 polygon for Dakwa (1): kept in the CSV, not drawn on the map",False,
+2026-10-08,147,Sitrep,daily_2026-10-08_Sitrep.csv,147,65,8845,0,8845,4275,2320,0,not in INRB,False,
+2026-10-09,148,Sitrep,daily_2026-10-09_Sitrep.csv,148,65,8914,0,8914,4315,2338,0,INRB zone sum 8913+NA 0 != national 8914,False,
+2026-10-10,149,Sitrep,daily_2026-10-10_Sitrep.csv,149,65,8978,0,8978,4336,2356,0,INRB zone sum 8977+NA 0 != national 8978,False,
+2026-10-11,150,Sitrep,daily_2026-10-11_Sitrep.csv,150,65,9066,0,9066,4381,2389,0,INRB zone sum 9065+NA 0 != national 9066,False,
+2026-10-12,151,Sitrep,daily_2026-10-12_Sitrep.csv,151,65,9144,0,9144,4410,2418,0,INRB has national total but no zone rows,False,
+2026-10-13,152,Sitrep,daily_2026-10-13_Sitrep.csv,,65,9144,,9212,4441,2448,68,INRB has national total but no zone rows; no SitRep published for this date; PROVISIONAL: zone values carried forward from 2026-10-12,True,2026-10-12
+2026-10-14,153,Sitrep,daily_2026-10-14_Sitrep.csv,,65,9144,,9277,4478,2486,133,INRB has national total but no zone rows; no SitRep published for this date; PROVISIONAL: zone values carried forward from 2026-10-12,True,2026-10-12
+2026-10-15,154,Sitrep,daily_2026-10-15_Sitrep.csv,,65,9144,,,,,,not in INRB; no SitRep published for this date; PROVISIONAL: zone values carried forward from 2026-10-12,True,2026-10-12
+2026-10-16,155,INRB,daily_2026-10-16_INRB.csv,,66,9415,0,9415,4536,2522,0,,False,
