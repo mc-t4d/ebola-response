@@ -576,7 +576,7 @@
     function modal(id, openers, closeId) {
       var m = $(id);
       var open = function () { m.classList.add("open"); }, close = function () { m.classList.remove("open"); };
-      openers.forEach(function (o) { $(o).addEventListener("click", open); });
+      openers.forEach(function (o) { if ($(o)) $(o).addEventListener("click", open); });
       $(closeId).addEventListener("click", close);
       m.addEventListener("click", function (ev) { if (ev.target === m) close(); });
       document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") close(); });
