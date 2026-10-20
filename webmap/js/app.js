@@ -24,7 +24,7 @@
   var TRENDS = B.classList.contains("view-trends");
   var WEEKLYPAGE = B.classList.contains("view-weekly");   // weekly new-case growth page
   var STEP = parseInt(B.dataset.sliderStep || "1", 10) || 1;
-  var PLAY_MS = STEP > 1 ? 1800 : 400;           // ms per frame: 21-day page / daily page
+  var PLAY_MS = STEP > 1 ? 1800 : 250;           // ms per frame: 21-day page / daily page
   var WEEKLY_MS = 800;                           // ms per frame in the Daily Trend page's Weekly mode
   var WEEKPAGE_MS = 1500;                        // ms per frame on the Weekly Case Growth page
   var NEAR = 14, MID = 42;                       // recency thresholds (days)
@@ -32,8 +32,7 @@
   var REC_FILL = { 1: "#b2182b", 2: "#ef8a62", 3: "#fddbc7", 4: "#e0e0e0" };
   var PROGRAMMES = {
     RESET: { color: "#81bc00" },
-    IERDC: { color: "#00aed8" },
-    SAFER: { color: "#231f20", dash: "6 4" }
+    IERDC: { color: "#00aed8" }                  // includes the former SAFER zone
   };
   // DRC provinces whose health zones (admin 2) are drawn; the other provinces are plain grey.
   var PROVINCES_SHOWN = ["Haut-Uele", "Ituri", "Sud-Kivu", "Nord-Kivu", "Tshopo", "Bas-Uele", "Sud-Ubangi"];
@@ -292,7 +291,7 @@
     map.on("zoomend", function () { geoLayer.setStyle(zoneStyle); });
     if (STEP === 1) { buildZoneLabels(); updateZoneLabels(); }
 
-    // province lines (trend pages only), country border, programme outlines (map page)
+    // province lines (trend pages only), country border, programme outlines (checkbox on every page)
     if (TRENDS) {
       pane("province-outline", 550);
       L.geoJSON(D.provinces, { pane: "province-outline", interactive: false,
@@ -303,7 +302,7 @@
     L.geoJSON(D.country, { pane: "country-outline", interactive: false,
       style: { color: "#231f20", weight: 2.2, opacity: 1, fillOpacity: 0 } }).addTo(map);
 
-    if (!TRENDS) {
+    if ($("show-programmes")) {              // every page: programme outlines, on by default only on Current Cumulative
       pane("program-outline", 548);
       programmeLayer = L.geoJSON(D.programmes, { pane: "program-outline", interactive: false,
         style: function (f) {
@@ -342,16 +341,16 @@
   }
 
   function renderLegends() {
+    var present = {};
+    D.programmes.features.forEach(function (f) { present[f.properties.program] = true; });
+    $("legend-programs").innerHTML = Object.keys(PROGRAMMES).filter(function (k) { return present[k]; }).map(function (k) {
+      return "<div class='legend-class-row'><span class='swatch program-swatch' style='border:3px solid " + PROGRAMMES[k].color +
+        ";background:transparent'></span><span class='legend-class-label'>" + k + " programme area</span></div>";
+    }).join("");
     if (!TRENDS) {
       $("legend-title").innerHTML = "<strong>" + LAYER_LABEL + "</strong>";
       $("legend-classes").innerHTML = classRows() + nullRow();
       $("recency-swatches").innerHTML = recencyRows();
-      var present = {};
-      D.programmes.features.forEach(function (f) { present[f.properties.program] = true; });
-      $("legend-programs").innerHTML = Object.keys(PROGRAMMES).filter(function (k) { return present[k]; }).map(function (k) {
-        return "<div class='legend-class-row'><span class='swatch program-swatch' style='border:3px solid " + PROGRAMMES[k].color +
-          ";background:transparent'></span><span class='legend-class-label'>" + k + " programme area</span></div>";
-      }).join("");
     } else if (WEEKLYPAGE) {
       $("trends-class-legend").innerHTML =
         "<div class='legend-class-row exist-row'><span class='swatch' style='background:" + EXIST_COLOR + "'></span>" +

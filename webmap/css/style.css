@@ -206,7 +206,7 @@ body {
 #legend-title {
   white-space:nowrap;
 }
-body.view-trends #controls, body.view-trends #legend {
+body.view-trends #legend {
   display:none !important;
 }
 #trends-legend {
@@ -1069,11 +1069,11 @@ body.view-trends #map {
 #corridor-legend {
   position: absolute;
   left: 12px;
-  top: 12px;
+  top: 60px;                         /* under the "Show programme areas" card */
   z-index: 1000;
   width: 300px;
   max-width: calc(100% - 24px);
-  max-height: calc(100% - 24px - 300px);
+  max-height: calc(100% - 72px - 300px);
   min-height: 0;
   overflow-y: auto;
   padding: 10px 12px;

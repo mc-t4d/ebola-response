@@ -239,7 +239,7 @@
           "<line x1='1' y1='5' x2='25' y2='5' stroke='#c8102e' stroke-width='2.5' stroke-linecap='round'/></svg><span>National road</span></div>";
         var epi = document.getElementById("legend-epicentre");        // map page: road row goes under the epicentre row
         if (host.id !== "trends-legend") host.insertBefore(row, epi ? epi.nextSibling : (document.getElementById("trends-mode-toggle") ? document.getElementById("trends-mode-toggle").nextSibling : host.firstChild));
-        else host.appendChild(row);
+        else host.insertBefore(row, document.getElementById("legend-programs"));    // programme rows stay last
       }
     });
   }
