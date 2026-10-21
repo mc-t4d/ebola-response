@@ -1069,7 +1069,7 @@ body.view-trends #map {
 #corridor-legend {
   position: absolute;
   left: 12px;
-  top: 60px;                         /* under the "Show programme areas" card */
+  top: 60px;                         /* under the "Show program locations" card */
   z-index: 1000;
   width: 300px;
   max-width: calc(100% - 24px);

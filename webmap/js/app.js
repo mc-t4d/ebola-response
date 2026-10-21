@@ -345,7 +345,7 @@
     D.programmes.features.forEach(function (f) { present[f.properties.program] = true; });
     $("legend-programs").innerHTML = Object.keys(PROGRAMMES).filter(function (k) { return present[k]; }).map(function (k) {
       return "<div class='legend-class-row'><span class='swatch program-swatch' style='border:3px solid " + PROGRAMMES[k].color +
-        ";background:transparent'></span><span class='legend-class-label'>" + k + " programme area</span></div>";
+        ";background:transparent'></span><span class='legend-class-label'>" + k + " program health zones</span></div>";
     }).join("");
     if (!TRENDS) {
       $("legend-title").innerHTML = "<strong>" + LAYER_LABEL + "</strong>";
