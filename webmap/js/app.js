@@ -6,12 +6,15 @@
  *   trend21.html  body.view-trends  data-slider-step="21": one frame every 21 days
  *
  * Data (all static files, no build step in the browser):
- *   data/daily/manifest.csv + daily_<date>_<source>.csv   cases per health zone
+ *   data/series/national_daily.csv + zone_daily.csv       the time series: one row per day / per zone per day
+ *                                                         (location set in js/config.js; one fetch)
+ *   data/daily/manifest.csv + daily_<date>_<source>.csv   the same data as one file per day -- the fallback
+ *                                                         if the series cannot be loaded, or with ?data=legacy
  *   data/geo/*.geojson                                    zones, provinces, country, programme areas
  *   data/modals.json                                      text of the Methods / Terms pop-ups
  *
- * The latest manifest row is the "current" day: add a daily file + manifest row
- * (tools/build_daily_data.py) and the maps pick it up on the next load.
+ * The latest national_daily row is the "current" day: refresh the series files (the daily-map
+ * automation compiles and publishes them) and the maps pick it up on the next load.
  * js/corridors.js adds towns / routes / epicentre once this script fires
  * "dashboard:ready" (window.dashboardMap is the Leaflet map).
  *
@@ -55,6 +58,12 @@
   var EN_MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   var $ = function (id) { return document.getElementById(id); };
+
+  // Time series location comes from js/config.js (relative path, or a blob URL later).
+  var CFG = window.WEBMAP_CONFIG || {};
+  var SERIES_BASE = CFG.seriesBase || "data/series/";
+  var LEGACY = /[?&]data=legacy\b/.test(location.search);
+  var series = null;           // {date: [zone rows]} while the single-file series is in use; null = per-day files
 
   var D = {};                  // loaded data: zones, provinces, country, programmes, modals
   var map, geoLayer, programmeLayer;
@@ -110,10 +119,31 @@
   }
 
   // ---- data ---------------------------------------------------------------
+  // national_daily.csv rows play the role of manifest.csv rows (date, day, national_*, ...);
+  // zone_daily.csv is grouped by date so loadFrames() can hand out one day's zone rows at a time.
+  function loadSeries() {
+    return Promise.all([getText(SERIES_BASE + "national_daily.csv").then(parseCSV), getText(SERIES_BASE + "zone_daily.csv").then(parseCSV)])
+      .then(function (r) {
+        if (!r[0].length || !r[1].length) throw new Error("series files are empty");
+        var by = {};
+        r[1].forEach(function (z) { (by[z.date] = by[z.date] || []).push(z); });
+        series = by;
+        return r[0];
+      });
+  }
+  function loadManifest() {
+    var perDay = function () { series = null; return getText("data/daily/manifest.csv").then(parseCSV); };
+    if (LEGACY) return perDay();
+    return loadSeries().catch(function (err) {
+      console.warn("time series not loaded (" + err.message + ") -- using the per-day files");
+      return perDay();
+    });
+  }
+
   // Manifest rows to show: just the latest day, or (trend pages) every day /
   // every STEP-th day counted from Day 0, always ending on the latest.
   function pickEntries(manifest, all) {
-    var rows = manifest.filter(function (r) { return r.file && r.date; })
+    var rows = manifest.filter(function (r) { return r.date && (series || r.file); })
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (!rows.length) throw new Error("manifest.csv has no usable rows");
     if (!TRENDS && !all) {          // latest day, plus 1 and 7 days earlier for the "as of" card's changes
@@ -131,7 +161,9 @@
   }
 
   function loadFrames(entries) {
-    return Promise.all(entries.map(function (e) { return getText("data/daily/" + e.file).then(parseCSV); }))
+    return Promise.all(entries.map(function (e) {
+      return series ? Promise.resolve(series[e.date] || []) : getText("data/daily/" + e.file).then(parseCSV);
+    }))
       .then(function (files) {
         var known = {}, undrawn = 0;
         D.zones.features.forEach(function (f) { known[f.properties.nom] = true; });
@@ -620,7 +652,7 @@
   Promise.all([
     getJSON("data/geo/zones.geojson"), getJSON("data/geo/provinces.geojson"), getJSON("data/geo/country.geojson"),
     getJSON("data/geo/programmes.geojson"), getJSON("data/modals.json"),
-    getText("data/daily/manifest.csv").then(parseCSV)
+    loadManifest()
   ]).then(function (r) {
     D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4] };
     D.zones = { type: "FeatureCollection", features: D.zones.features.filter(function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; }) };
