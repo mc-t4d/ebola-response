@@ -1,5 +1,9 @@
 # Daily cumulative confirmed cases / deaths by health zone
 
+> **Fallback data.** The maps now read `data/series/national_daily.csv` + `zone_daily.csv` (one fetch; compiled by the
+> daily-map automation). These per-day files are used only if that series cannot be loaded, or with `?data=legacy` on a page URL.
+> They are no longer the source of truth and are not updated by the automation.
+
 `daily_<YYYY-MM-DD>_<INRB|Sitrep>.csv` — one file per day, 14 May → 12 Oct 2026 (152 files).
 `manifest.csv` has one row per day: source, SitRep no., zone/national totals, QA diff, `provisional`, notes.
 
