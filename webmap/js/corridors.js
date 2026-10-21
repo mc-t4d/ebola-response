@@ -160,7 +160,7 @@
         "<div class='town-hover-tip'><strong>" + esc(p.name) + "</strong>" + (p.country ? " (" + esc(p.country) + ")" : "") +
         (p.notes ? "<div class='town-notes'>" + esc(p.notes) + "</div>" : "") + "</div>",
         { direction: "top", offset: [0, -6], opacity: 1 });
-      dot.on("mouseover", function () { dot.setStyle({ radius: 7, fillColor: "#c8102e" }); dot.bringToFront(); });
+      dot.on("mouseover", function () { dot.setStyle({ radius: 7, fillColor: "#c8102e" }); });      // no bringToFront(): it can drop the mouseout and strand the tooltip
       dot.on("mouseout", function () { dot.setStyle({ radius: 4.5, fillColor: "#231f20" }); });
       // permanent label: separate, non-interactive marker so it never steals the hover
       L.marker(ll, {
@@ -212,7 +212,7 @@
           style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },   // same look as DRC zones without cases
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });
-            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); layer.bringToFront(); });
+            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); });
             layer.on("mouseout", function () { layer.setStyle({ color: "#54585a", opacity: 0.85, weight: 1.2 }); });
           } }).addTo(map);
         L.marker([4.6, 31.2], { pane: "south-sudan", interactive: false, keyboard: false,

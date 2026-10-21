@@ -277,17 +277,28 @@
       filter: function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) < 0; },
       style: { stroke: false, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);
 
+    // Hover outline = a separate, non-interactive copy of the zone drawn above its neighbours.
+    // Do not use layer.bringToFront() here: it re-inserts the SVG path under the cursor, the
+    // browser can then drop that path's mouseout, and the tooltip is left stuck on the map.
+    pane("hover-outline", 545);
+    var hoverOutline = L.geoJSON(null, { pane: "hover-outline", interactive: false,
+      style: function () { return { color: STROKE_HOVER, opacity: 0.98, fill: false, weight: zoneWeight(map.getZoom()) * 1.7 }; } }).addTo(map);
     geoLayer = L.geoJSON(D.zones, {
       style: zoneStyle,
       onEachFeature: function (f, layer) {
         layer.bindTooltip(function () { return tooltipHtml(layer); }, { sticky: true, direction: "top" });
-        layer.on("mouseover", function () {
-          layer.setStyle({ color: STROKE_HOVER, opacity: 0.98, weight: zoneWeight(map.getZoom()) * 1.7 });
-          layer.bringToFront();
-        });
-        layer.on("mouseout", function () { geoLayer.resetStyle(layer); });
+        layer.on("mouseover", function () { hoverOutline.clearLayers().addData(f); });
+        layer.on("mouseout", function () { hoverOutline.clearLayers(); });
       }
     }).addTo(map);
+    // Safety net: at most one tooltip is ever on screen, and none outlive the pointer leaving the map.
+    var openTip = null;
+    map.on("tooltipopen", function (e) {
+      if (openTip && openTip !== e.tooltip) map.closeTooltip(openTip);
+      openTip = e.tooltip;
+    });
+    map.on("tooltipclose", function (e) { if (openTip === e.tooltip) openTip = null; });
+    map.getContainer().addEventListener("mouseleave", function () { if (openTip) map.closeTooltip(openTip); hoverOutline.clearLayers(); });
     map.on("zoomend", function () { geoLayer.setStyle(zoneStyle); });
     if (STEP === 1) { buildZoneLabels(); updateZoneLabels(); }
 
