@@ -7,6 +7,7 @@
  *   epicentre  asterisk icons on Bunia and Rwampara, "Outbreak Epicenter"
  *   roads      DRC national roads as a red line (data/geo/roads.geojson, from the OSM road gpkg)
  *   southsudan South Sudan border + counties (data/geo/south_sudan*.geojson), under the zones
+ *   uganda     Uganda districts + the 7 response districts (data/geo/uganda_*.geojson), same level as South Sudan
  *
  * Routes keep the gpkg colour (color_hex). Cross-border / transit routes are
  * dashed and the dashes flow toward the destination; domestic roads are solid
@@ -160,7 +161,7 @@
         "<div class='town-hover-tip'><strong>" + esc(p.name) + "</strong>" + (p.country ? " (" + esc(p.country) + ")" : "") +
         (p.notes ? "<div class='town-notes'>" + esc(p.notes) + "</div>" : "") + "</div>",
         { direction: "top", offset: [0, -6], opacity: 1 });
-      dot.on("mouseover", function () { dot.setStyle({ radius: 7, fillColor: "#c8102e" }); dot.bringToFront(); });
+      dot.on("mouseover", function () { dot.setStyle({ radius: 7, fillColor: "#c8102e" }); });      // no bringToFront(): it can drop the mouseout and strand the tooltip
       dot.on("mouseout", function () { dot.setStyle({ radius: 4.5, fillColor: "#231f20" }); });
       // permanent label: separate, non-interactive marker so it never steals the hover
       L.marker(ll, {
@@ -212,11 +213,30 @@
           style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },   // same look as DRC zones without cases
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });
-            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); layer.bringToFront(); });
+            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); });
             layer.on("mouseout", function () { layer.setStyle({ color: "#54585a", opacity: 0.85, weight: 1.2 }); });
           } }).addTo(map);
         L.marker([4.6, 31.2], { pane: "south-sudan", interactive: false, keyboard: false,
           icon: L.divIcon({ className: "country-label", html: "<span>South Sudan</span>", iconSize: [0, 0] }) }).addTo(map);
+      });
+  }
+
+  // Uganda: all admin-2 units as flat grey context, the response districts highlighted like the South Sudan counties.
+  function drawUganda(map) {
+    map.createPane("uganda"); map.getPane("uganda").style.zIndex = 380;   // same level as South Sudan: above tiles, below zones
+    return Promise.all([getJSON("data/geo/uganda_districts.geojson"), getJSON("data/geo/uganda_response_areas.geojson")])
+      .then(function (r) {
+        L.geoJSON(r[0], { pane: "uganda", interactive: false,
+          style: { color: "#bdbdbd", weight: 0.8, opacity: 1, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);   // same grey as South Sudan / DRC provinces without zones
+        L.geoJSON(r[1], { pane: "uganda",
+          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },
+          onEachFeature: function (f, layer) {
+            layer.bindTooltip(esc(f.properties.district) + " (" + esc(f.properties.region) + ")", { sticky: true });
+            layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); });
+            layer.on("mouseout", function () { layer.setStyle({ color: "#54585a", opacity: 0.85, weight: 1.2 }); });
+          } }).addTo(map);
+        L.marker([1.4, 32.3], { pane: "uganda", interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "country-label", html: "<span>Uganda</span>", iconSize: [0, 0] }) }).addTo(map);
       });
   }
 
@@ -250,6 +270,7 @@
     (document.body.dataset.overlays || "corridors towns").split(/\s+/).forEach(function (k) { if (k) want[k] = true; });
     if (!map) { console.warn("overlays: map not available"); return; }
     if (want.southsudan) drawSouthSudan(map).catch(function (err) { console.warn("South Sudan not drawn (" + err.message + ")"); });
+    if (want.uganda) drawUganda(map).catch(function (err) { console.warn("Uganda not drawn (" + err.message + ")"); });
     if (want.roads) drawRoads(map).catch(function (err) { console.warn("roads not drawn (" + err.message + ")"); });
     fetch("data/corridors.geojson", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
