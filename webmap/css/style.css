@@ -1381,3 +1381,23 @@ body.view-trends #trends-slider {
   color: var(--brand-black);
   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
 }
+
+/* Current Cumulative: province names (provinces with cases only) -- quiet, under the zone labels */
+.province-label {
+  background: none;
+  border: 0;
+  pointer-events: none;
+}
+.province-label span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: var(--brand-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--brand-dark-gray);
+  opacity: .72;
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 4px #fff;
+}
