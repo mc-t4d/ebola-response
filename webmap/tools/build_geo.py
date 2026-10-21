@@ -10,12 +10,15 @@
   roads.geojson       DRC national road network (osm_rdc_reseau_routier_national_230205.gpkg)
   uganda_districts.geojson       166 Uganda admin-2 units (uganda/UGA_UG.parquet; needs pyarrow)
   uganda_response_areas.geojson  7 Uganda response districts (uga_response_areas.gpkg)
+  uganda_border.geojson          Uganda outline: UGA_UG.parquet dissolved (district gaps closed)
+  lakes.geojson       DRC-area lakes over LAKE_MIN_KM2 (osm_rdc_hydro_surfacique_lac_211205.gpkg)
 
 data/geo/zone_names.csv ties each GRID3 zone (zs_uid) to the `nom` used in the
 daily CSVs; edit it if a zone is renamed. Needs geopandas + shapely>=2.1.
 
     python tools/build_geo.py
-    python tools/build_geo.py --uganda-only [--vector-dir DIR]   # just the two Uganda files
+    python tools/build_geo.py --uganda-only [--vector-dir DIR]   # just the Uganda files
+    python tools/build_geo.py --lakes-only  [--vector-dir DIR]   # just lakes.geojson
 """
 import argparse, csv, json
 from pathlib import Path
@@ -27,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent          # the webmap/ folder
 VEC, GEO = ROOT / "data" / "vector", ROOT / "data" / "geo"
 TOL = 0.002          # degrees (~220 m) for coverage simplification
 DECIMALS = 4         # ~11 m
+LAKE_MIN_KM2 = 2     # smaller water bodies are dropped (1,805 polygons -> ~85): they are noise at map scale
 
 
 def geom_json(g):
@@ -46,6 +50,9 @@ def build_uganda(vec):
          "properties": {"admin1": r.admin1, "admin2": r.admin2, "hasc_2": r.hasc_2 if isinstance(r.hasc_2, str) else None, "mc_operates": bool(r.mc_operates),
                         "mc_pg_country": bool(r.mc_pg_country), "mc_border_country": bool(r.mc_border_country)}}
         for (_, r), g in zip(ug.iterrows(), sg)])
+    border = shapely.union_all(ug.geometry.make_valid().buffer(0.001).values).buffer(-0.001)   # close slivers between districts
+    border = shapely.simplify(border, TOL, preserve_topology=True)
+    write("uganda_border.geojson", [{"type": "Feature", "geometry": geom_json(border), "properties": {"name": "Uganda"}}])
     ra = gpd.read_file(vec / "uga_response_areas.gpkg").to_crs(4326)
     sr = shapely.coverage_simplify(ra.geometry.make_valid().values, TOL)
     write("uganda_response_areas.geojson", [
@@ -55,14 +62,27 @@ def build_uganda(vec):
     print(f"uganda districts {len(ug)}, response areas {len(ra)}")
 
 
+def build_lakes(vec):
+    lk = gpd.read_file(vec / "osm_rdc_hydro_surfacique_lac_211205.gpkg").to_crs(4326)
+    lk = lk[(lk.to_crs(6933).area / 1e6 >= LAKE_MIN_KM2).values]
+    gs = shapely.simplify(lk.geometry.make_valid().values, TOL / 2, preserve_topology=True)
+    write("lakes.geojson", [{"type": "Feature", "geometry": geom_json(g),
+                             "properties": {"name": n if isinstance(n, str) else ""}} for n, g in zip(lk["name"], gs)])
+    print(f"lakes {len(lk)} (>= {LAKE_MIN_KM2} km2)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--vector-dir", type=Path, default=VEC, help="folder holding the source GeoPackages (default data/vector)")
-    ap.add_argument("--uganda-only", action="store_true", help="only rebuild the two Uganda files")
+    ap.add_argument("--uganda-only", action="store_true", help="only rebuild the Uganda files")
+    ap.add_argument("--lakes-only", action="store_true", help="only rebuild lakes.geojson")
     a = ap.parse_args()
     if a.uganda_only:
         return build_uganda(a.vector_dir)
+    if a.lakes_only:
+        return build_lakes(a.vector_dir)
     build_uganda(a.vector_dir)
+    build_lakes(a.vector_dir)
     with open(GEO / "zone_names.csv", encoding="utf-8", newline="") as f:
         names = {r["grid3_zs_uid"]: r for r in csv.DictReader(f)}
 
