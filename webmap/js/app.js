@@ -425,7 +425,7 @@
   // `shown` = the day indices the slider steps through: every day, or (Daily Trend's
   // Weekly toggle) every 7th day from Day 0 plus the latest day. All days stay loaded,
   // so the "as of" card can still compare against 1 and 7 days earlier.
-  var shown = [], weekly = false;
+  var shown = [], weekly = !!document.querySelector(".step-btn.active[data-step='7']");   // trends.html ships with Weekly active
   function buildShown() {
     var n = dates.length;
     shown = [];
@@ -626,7 +626,7 @@
     renderLegends();
     renderDynamics();
     document.dispatchEvent(new Event("dashboard:ready"));
-    if (WEEKLYPAGE) setIdx(dates.length - 1);   // open on the latest completed week
-    else if (TRENDS) play();                  // start from the first frame every time the page opens
+    if (WEEKLYPAGE || weekly) setIdx(dates.length - 1);   // open static on the latest week; the slider / play button step through the rest
+    else if (TRENDS) play();                  // 21-Day page: start from the first frame every time the page opens
   }).catch(fail);
 })();
