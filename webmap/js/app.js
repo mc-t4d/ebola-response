@@ -38,7 +38,8 @@
     IERDC: { color: "#00aed8" }                  // includes the former SAFER zone
   };
   // DRC provinces whose health zones (admin 2) are drawn; the other provinces are plain grey.
-  var PROVINCES_SHOWN = ["Haut-Uele", "Ituri", "Sud-Kivu", "Nord-Kivu", "Tshopo", "Bas-Uele", "Sud-Ubangi"];
+  var PROVINCES_SHOWN = ["Haut-Uele", "Ituri", "Sud-Kivu", "Nord-Kivu", "Tshopo", "Bas-Uele", "Sud-Ubangi", "Nord-Ubangi"];
+  var PROVINCE_LABEL = { "Haut-Uele": "Haut-Uel\u00e9", "Bas-Uele": "Bas-Uel\u00e9" };   // display names for the province labels
   var BOUNDS = [[-2.9, 18.5], [6.1, 33.7]];       // initial view [[south, west], [north, east]]
   var INSP_URL = "https://insp.cd/";
   // Case classes (min..max cumulative confirmed cases) and the "no cases reported" grey
@@ -293,6 +294,22 @@
     });
   }
 
+  // Current Cumulative: a small label on each province that has cases at the current frame.
+  function buildProvinceLabels() {
+    var hit = {};
+    D.zones.features.forEach(function (f) {
+      var s = cum[f.properties.nom];
+      if (s && s[idx] > 0) hit[f.properties.province] = true;
+    });
+    pane("province-labels", 595);                    // just under the zone-name labels (600)
+    D.provinces.features.forEach(function (f) {
+      var name = f.properties.province;
+      if (!hit[name]) return;
+      L.marker(labelPoint(f.geometry), { pane: "province-labels", interactive: false, keyboard: false,
+        icon: L.divIcon({ className: "province-label", html: "<span>" + esc(PROVINCE_LABEL[name] || name) + "</span>", iconSize: [0, 0] }) }).addTo(map);
+    });
+  }
+
   function pane(name, z) { map.createPane(name); map.getPane(name).style.zIndex = z; }
 
   function buildMap() {
@@ -334,16 +351,23 @@
     map.on("zoomend", function () { geoLayer.setStyle(zoneStyle); });
     if (STEP === 1) { buildZoneLabels(); updateZoneLabels(); }
 
-    // province lines (trend pages only), country border, programme outlines (checkbox on every page)
-    if (TRENDS) {
-      pane("province-outline", 550);
-      L.geoJSON(D.provinces, { pane: "province-outline", interactive: false,
-        filter: function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; },
-        style: { color: "#231f20", weight: 1.4, opacity: 0.88, fillOpacity: 0 } }).addTo(map);
+    // lakes: water drawn over the zone fills (non-interactive, so zone tooltips still work through them)
+    if (D.lakes) {
+      pane("lakes", 540);
+      L.geoJSON(D.lakes, { pane: "lakes", interactive: false,
+        style: { color: "#9ccbe0", weight: 0.6, opacity: 1, fillColor: "#ccf4ff", fillOpacity: 1 } }).addTo(map);
     }
+
+    // province lines, country border, programme outlines (checkbox on every page)
+    pane("province-outline", 550);
+    L.geoJSON(D.provinces, { pane: "province-outline", interactive: false,
+      filter: function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; },
+      style: { color: "#231f20", weight: 1.4, opacity: 0.88, fillOpacity: 0 } }).addTo(map);
     pane("country-outline", 552);
     L.geoJSON(D.country, { pane: "country-outline", interactive: false,
       style: { color: "#231f20", weight: 2.2, opacity: 1, fillOpacity: 0 } }).addTo(map);
+
+    if (!TRENDS) buildProvinceLabels();
 
     if ($("show-programmes")) {              // every page: programme outlines, on by default only on Current Cumulative
       pane("program-outline", 548);
@@ -652,9 +676,10 @@
   Promise.all([
     getJSON("data/geo/zones.geojson"), getJSON("data/geo/provinces.geojson"), getJSON("data/geo/country.geojson"),
     getJSON("data/geo/programmes.geojson"), getJSON("data/modals.json"),
-    loadManifest()
+    loadManifest(),
+    getJSON("data/geo/lakes.geojson").catch(function () { return null; })
   ]).then(function (r) {
-    D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4] };
+    D = { zones: r[0], provinces: r[1], country: r[2], programmes: r[3], modals: r[4], lakes: r[6] };
     D.zones = { type: "FeatureCollection", features: D.zones.features.filter(function (f) { return PROVINCES_SHOWN.indexOf(f.properties.province) >= 0; }) };
     manifestRows = r[5];
     return loadFrames(pickEntries(manifestRows));

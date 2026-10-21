@@ -13,7 +13,7 @@ Serve the folder over HTTP (browsers block `fetch` from `file://`):
 | `css/style.css` | all styling |
 | `data/series/` | `national_daily.csv` + `zone_daily.csv`: the time series every page reads (one fetch). Compiled by the daily-map automation (`ebola_timeseries_export.py`) and published here by its publish step |
 | `data/daily/` | the same data as one CSV per day + `manifest.csv`; fallback if `data/series/` cannot be loaded, or add `?data=legacy` to a page URL; see its README |
-| `data/geo/` | zones / provinces / country / programme / South Sudan / Uganda GeoJSON + `zone_names.csv` |
+| `data/geo/` | zones / provinces / country / programme / South Sudan / Uganda (districts, response areas, border) / lakes GeoJSON + `zone_names.csv` |
 | `data/corridors.geojson`, `data/modals.json` | overlays, pop-up text |
 | `data/vector/` | source GeoPackages |
 | `tools/` | `build_daily_data.py`, `build_geo.py`, `build_corridors_geojson.py` regenerate the data files |
