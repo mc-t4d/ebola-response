@@ -157,5 +157,5 @@ date,day,source,sitrep_no,national_cases,national_deaths,national_recovered,zone
 2026-10-16,155,INRB,,9415,4536,2522,66,9415,0,0,False,,
 2026-10-17,156,INRB,,9455,4561,2530,66,9455,0,0,False,,
 2026-10-18,157,INRB,,9552,4602,2550,66,9552,0,0,False,,
-2026-10-19,158,INRB,,,,,66,9552,,,True,2026-10-18,not in INRB; PROVISIONAL: zone values carried forward from 2026-10-18
+2026-10-19,158,INRB,,9637,4646,2574,66,9637,0,0,False,,
 2026-10-20,159,Sitrep,159,9704,4687,2595,66,9704,0,0,False,,not in INRB
