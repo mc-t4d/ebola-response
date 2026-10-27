@@ -289,6 +289,13 @@
     var want = {};
     (document.body.dataset.overlays || "corridors towns").split(/\s+/).forEach(function (k) { if (k) want[k] = true; });
     if (!map) { console.warn("overlays: map not available"); return; }
+    // Mercy Corps logo: first item in the page header, left of the title
+    var hdr = document.getElementById("site-header");
+    if (hdr && !document.getElementById("mc-logo")) {
+      var logo = document.createElement("img");
+      logo.id = "mc-logo"; logo.src = "data/logo/mercy-corps.jpg"; logo.alt = "Mercy Corps";
+      hdr.insertBefore(logo, hdr.firstChild);
+    }
     if (want.southsudan) drawSouthSudan(map).catch(function (err) { console.warn("South Sudan not drawn (" + err.message + ")"); });
     if (want.uganda) drawUganda(map).catch(function (err) { console.warn("Uganda not drawn (" + err.message + ")"); });
     if (want.roads) drawRoads(map).catch(function (err) { console.warn("roads not drawn (" + err.message + ")"); });

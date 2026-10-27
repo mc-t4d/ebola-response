@@ -1312,6 +1312,18 @@ body.view-trends #trends-slider {
 .road-legend {
   margin: 6px 0 0;
 }
+#mc-logo + #site-header-left { margin-right: auto; }   /* keep logo + title together on the left */
+#mc-logo {
+  flex: 0 0 auto;
+  display: block;
+  height: 44px;
+  width: auto;
+  align-self: center;
+  margin-right: 4px;
+}
+@media (max-width: 700px) {
+  #mc-logo { height: 34px; margin: 0; }
+}
 #dynamics {
   top: 12px;
   right: 12px;
