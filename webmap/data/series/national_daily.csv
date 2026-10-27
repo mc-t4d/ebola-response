@@ -163,3 +163,4 @@ date,day,source,sitrep_no,national_cases,national_deaths,national_recovered,zone
 2026-10-22,161,Sitrep,161,9816,4757,2635,66,9816,0,0,False,,not in INRB
 2026-10-23,162,Sitrep,162,9876,4803,2646,66,9876,0,0,False,,not in INRB
 2026-10-24,163,Sitrep,163,9964,4841,2670,66,9964,0,0,False,,not in INRB
+2026-10-25,164,Sitrep,164,10060,4887,2684,66,10060,0,0,False,,not in INRB
