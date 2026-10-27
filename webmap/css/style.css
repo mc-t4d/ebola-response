@@ -1102,17 +1102,6 @@ body.view-trends #map {
   font-size: 14px;
   line-height: 1;
 }
-#corridor-legend .corridor-switch {
-  margin: 6px 0 2px;
-  padding: 3px 10px;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--card);
-  color: var(--ink);
-  font: inherit;
-}
-#corridor-legend .corridor-switch:hover { background: rgba(155, 125, 78, 0.08); color: var(--maroon); }
 #corridor-legend.corridors-off .corridor-group,
 #corridor-legend.corridors-off .corridor-row,
 #corridor-legend.corridors-off .corridor-key { opacity: 0.4; }
@@ -1178,7 +1167,7 @@ body.view-trends #trends-slider {
   z-index: 1000;
   right: 12px;
   bottom: calc(var(--view-chrome-height) + 12px);
-  width: min(560px, calc(100% - 24px - 250px - 12px));
+  width: min(560px, calc(100% - 24px - 290px - 12px));
   padding: 12px 14px 10px;
   font-family: var(--brand-font-label);
 }
@@ -1427,3 +1416,75 @@ body.view-trends #trends-slider {
   opacity: .72;
   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 4px #fff;
 }
+
+/* ---- left side card: layer switches, cases legend, corridor routes ---------- */
+#side-card {
+  position: absolute;
+  z-index: 1000;
+  left: 12px;
+  top: 12px;
+  width: 290px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - var(--view-chrome-height) - 24px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: hidden;
+  font-family: var(--brand-font-label);
+}
+#side-card .side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+#side-card .side-collapse {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--terracotta);
+  font-size: 14px;
+  line-height: 1;
+}
+#side-card .side-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+#side-card.collapsed .side-body { display: none; }
+#side-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+#side-layers .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 0; }
+#side-layers input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--brand-red); cursor: pointer; }
+#side-layers label { margin: 0; font-size: 13px; cursor: pointer; }
+/* legend / corridor cards lose their own card look and become sections of the side card */
+#side-card .side-body > .panel {
+  position: relative !important;
+  inset: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin: 12px 0 0 !important;
+  padding: 12px 0 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#side-card #corridor-legend .corridor-toggle { top: 10px; right: 0; }
+#side-card #corridor-legend .corridor-title { cursor: pointer; padding-right: 30px; }

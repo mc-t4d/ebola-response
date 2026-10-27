@@ -44,6 +44,51 @@
     return "<div class='epicentre-row'>" + asteriskSVG(18) + "<span>Outbreak Epicenter</span></div>";
   }
 
+  // ---- side card ----------------------------------------------------------
+  // One left-hand card: layer switches on top, then the cases legend, then the
+  // (collapsed) corridor routes. The existing #controls / #legend / #trends-legend
+  // nodes are moved in, so app.js keeps working on the same elements.
+  function buildSidebar() {
+    var area = document.getElementById("viewport-area");
+    if (!area) return null;
+    var side = document.getElementById("side-card");
+    if (side) return side;
+    side = document.createElement("aside");
+    side.id = "side-card"; side.className = "panel";
+    side.innerHTML =
+      "<div class='side-head'><span>Layers &amp; legend</span>" +
+      "<button type='button' class='side-collapse' aria-expanded='true' aria-label='Collapse or expand panel'>&minus;</button></div>" +
+      "<div class='side-body'><div id='side-layers'></div></div>";
+    area.appendChild(side);
+    var body = side.querySelector(".side-body"), layers = side.querySelector("#side-layers");
+    var controls = document.getElementById("controls");
+    var progRow = controls && controls.querySelector(".checkbox-row");
+    if (progRow) { progRow.style.order = 1; layers.appendChild(progRow); }
+    if (controls) controls.parentNode.removeChild(controls);
+    var legend = document.getElementById("legend") || document.getElementById("trends-legend");
+    if (legend) body.appendChild(legend);
+    var btn = side.querySelector(".side-collapse");
+    function setCollapsed(c) {
+      side.classList.toggle("collapsed", c);
+      btn.setAttribute("aria-expanded", c ? "false" : "true");
+      btn.innerHTML = c ? "+" : "&minus;";
+    }
+    btn.addEventListener("click", function () { setCollapsed(!side.classList.contains("collapsed")); });
+    if (window.matchMedia && window.matchMedia("(max-width: 700px)").matches) setCollapsed(true);
+    return side;
+  }
+
+  // add an on/off switch to the "layers" block (order keeps the rows in a fixed sequence)
+  function addLayerToggle(id, label, order, onChange) {
+    var host = document.getElementById("side-layers");
+    if (!host || document.getElementById(id)) return;
+    var row = document.createElement("div");
+    row.className = "checkbox-row"; row.style.order = order;
+    row.innerHTML = "<input type='checkbox' id='" + id + "' checked /><label for='" + id + "'>" + esc(label) + "</label>";
+    host.appendChild(row);
+    row.querySelector("input").addEventListener("change", function () { onChange(this.checked); });
+  }
+
   // ---- legends ------------------------------------------------------------
   function mapLegendRow() {                       // Current Cumulative: add to the existing legend card
     var body = document.querySelector("#legend .panel-body");
@@ -87,7 +132,6 @@
     box.innerHTML =
       "<button type='button' class='corridor-toggle' aria-expanded='true' aria-label='Collapse or expand corridor legend'>&minus;</button>" +
       "<div class='corridor-title'>Transmission corridors</div>" +
-      "<button type='button' class='corridor-switch' aria-pressed='true'>Hide corridors</button>" +
       "<div class='corridor-body'>" +
         "<div class='corridor-key'>Dashed = cross-border / transit &middot; solid = domestic road</div>" +
         (withEpicentre ? "<div class='corridor-epi'>" + epicentreRow() + "</div>" : "") + rows +
@@ -97,16 +141,19 @@
       this.setAttribute("aria-expanded", collapsed ? "false" : "true");
       this.innerHTML = collapsed ? "+" : "&minus;";
     });
-    box.querySelector(".corridor-switch").addEventListener("click", function () {
-      var off = box.classList.toggle("corridors-off");
-      if (off) map.removeLayer(grp); else map.addLayer(grp);
-      this.setAttribute("aria-pressed", off ? "false" : "true");
-      this.textContent = off ? "Show corridors" : "Hide corridors";
+    addLayerToggle("toggle-corridors", "Transmission corridors", 2, function (on) {
+      if (on) map.addLayer(grp); else map.removeLayer(grp);
+      box.classList.toggle("corridors-off", !on);
     });
+    box.classList.add("collapsed");                       // route list starts folded; the title row opens it
+    box.querySelector(".corridor-toggle").setAttribute("aria-expanded", "false");
+    box.querySelector(".corridor-toggle").innerHTML = "+";
+    box.querySelector(".corridor-title").addEventListener("click", function () { box.querySelector(".corridor-toggle").click(); });
     // Inside #viewport-area (the map region under the header), like every other
     // map card -- appended to <body> it was positioned from the top of the page
     // and slid under the header.
-    (document.getElementById("viewport-area") || document.body).appendChild(box);
+    var sideBody = document.querySelector("#side-card .side-body");
+    (sideBody || document.getElementById("viewport-area") || document.body).appendChild(box);
   }
 
   // ---- overlays -----------------------------------------------------------
@@ -263,13 +310,15 @@
   // National road network: red line with a white casing so it reads on every case colour.
   function drawRoads(map) {
     pane(map, "roads", 560);
+    var roadsGrp = L.layerGroup().addTo(map);
+    addLayerToggle("toggle-roads", "National roads", 3, function (on) { if (on) map.addLayer(roadsGrp); else map.removeLayer(roadsGrp); });
     return getJSON("data/geo/roads.geojson").then(function (gj) {
       L.geoJSON(gj, { pane: "roads", interactive: false,
-        style: { color: "#ffffff", weight: 4, opacity: 0.85, lineCap: "round", lineJoin: "round" } }).addTo(map);
+        style: { color: "#ffffff", weight: 4, opacity: 0.85, lineCap: "round", lineJoin: "round" } }).addTo(roadsGrp);
       L.geoJSON(gj, { pane: "roads", style: { color: "#c8102e", weight: 2, opacity: 1, lineCap: "round", lineJoin: "round" },
         onEachFeature: function (f, layer) {
           layer.bindTooltip(esc(f.properties.ref) + (f.properties.name ? " \u2013 " + esc(f.properties.name) : ""), { sticky: true });
-        } }).addTo(map);
+        } }).addTo(roadsGrp);
       var host = document.querySelector("#legend .panel-body") || document.getElementById("trends-legend");
       if (host) {
         var row = document.createElement("div");
@@ -289,6 +338,7 @@
     var want = {};
     (document.body.dataset.overlays || "corridors towns").split(/\s+/).forEach(function (k) { if (k) want[k] = true; });
     if (!map) { console.warn("overlays: map not available"); return; }
+    buildSidebar();
     // Mercy Corps logo: first item in the page header, left of the title
     var hdr = document.getElementById("site-header");
     if (hdr && !document.getElementById("mc-logo")) {
