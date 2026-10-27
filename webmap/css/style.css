@@ -1102,6 +1102,20 @@ body.view-trends #map {
   font-size: 14px;
   line-height: 1;
 }
+#corridor-legend .corridor-switch {
+  margin: 6px 0 2px;
+  padding: 3px 10px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+#corridor-legend .corridor-switch:hover { background: rgba(155, 125, 78, 0.08); color: var(--maroon); }
+#corridor-legend.corridors-off .corridor-group,
+#corridor-legend.corridors-off .corridor-row,
+#corridor-legend.corridors-off .corridor-key { opacity: 0.4; }
 #corridor-legend.collapsed .corridor-body {
   display: none;
 }

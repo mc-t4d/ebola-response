@@ -57,7 +57,7 @@
     if (anchor) anchor.parentNode.insertBefore(d, anchor.nextSibling);
   }
 
-  function routeLegend(routes, withEpicentre) {
+  function routeLegend(routes, withEpicentre, map, grp) {
     // routes grouped by destination so the list reads as three short blocks
     var groups = [
       { title: "To South Sudan", test: /^south sudan/i },
@@ -87,6 +87,7 @@
     box.innerHTML =
       "<button type='button' class='corridor-toggle' aria-expanded='true' aria-label='Collapse or expand corridor legend'>&minus;</button>" +
       "<div class='corridor-title'>Transmission corridors</div>" +
+      "<button type='button' class='corridor-switch' aria-pressed='true'>Hide corridors</button>" +
       "<div class='corridor-body'>" +
         "<div class='corridor-key'>Dashed = cross-border / transit &middot; solid = domestic road</div>" +
         (withEpicentre ? "<div class='corridor-epi'>" + epicentreRow() + "</div>" : "") + rows +
@@ -96,6 +97,12 @@
       this.setAttribute("aria-expanded", collapsed ? "false" : "true");
       this.innerHTML = collapsed ? "+" : "&minus;";
     });
+    box.querySelector(".corridor-switch").addEventListener("click", function () {
+      var off = box.classList.toggle("corridors-off");
+      if (off) map.removeLayer(grp); else map.addLayer(grp);
+      this.setAttribute("aria-pressed", off ? "false" : "true");
+      this.textContent = off ? "Show corridors" : "Hide corridors";
+    });
     // Inside #viewport-area (the map region under the header), like every other
     // map card -- appended to <body> it was positioned from the top of the page
     // and slid under the header.
@@ -103,7 +110,7 @@
   }
 
   // ---- overlays -----------------------------------------------------------
-  function drawRoutes(map, routes) {
+  function drawRoutes(map, routes, grp) {
     pane(map, "corridors", 565);
     routes.forEach(function (f) {
       var p = f.properties, color = p.color_hex || "#231f20", cross = p.kind === "cross_border";
@@ -114,7 +121,7 @@
             ? { color: color, weight: 3.5, opacity: 0.95, lineCap: "butt", lineJoin: "round", dashArray: DASH, className: "route-flow" }
             : { color: color, weight: 3.5, opacity: 0.95, lineCap: "round", lineJoin: "round" };
         }
-      }).addTo(map);
+      }).addTo(grp);
       base.bindTooltip(esc(p.route_name), { sticky: true });
       base.bindPopup(
         "<strong>" + esc(p.route_name) + "</strong><br><em>" + esc(p.category) + "</em><br>" +
@@ -126,7 +133,7 @@
           style: function () {
             return { color: "#ffffff", weight: 2.2, opacity: 0.9, lineCap: "round", dashArray: PULSE, className: "route-pulse" };
           }
-        }).addTo(map);
+        }).addTo(grp);
       }
       if (L.polylineDecorator && L.Symbol && L.Symbol.arrowHead) {
         // geometry is [lon, lat]; Leaflet wants [lat, lon]
@@ -134,22 +141,22 @@
         L.polylineDecorator(latlngs, {
           patterns: [{ offset: "100%", repeat: 0, symbol: L.Symbol.arrowHead({
             pixelSize: 13, polygon: false, pathOptions: { color: color, weight: 3.5, opacity: 1, pane: "corridors" } }) }]
-        }).addTo(map);
+        }).addTo(grp);
       }
     });
   }
 
-  function drawCrossings(map, crossings) {
+  function drawCrossings(map, crossings, grp) {
     crossings.forEach(function (f) {
       var c = f.geometry.coordinates, p = f.properties;
       L.circleMarker([c[1], c[0]], {
         pane: "corridor-nodes", radius: 6, weight: 2.5, color: "#231f20", fillColor: "#ffffff", fillOpacity: 1
       }).bindTooltip("Border crossing: " + esc(p.crossing), { direction: "top" })
-        .bindPopup("<strong>" + esc(p.crossing) + "</strong><br>" + esc(p.notes)).addTo(map);
+        .bindPopup("<strong>" + esc(p.crossing) + "</strong><br>" + esc(p.notes)).addTo(grp);
     });
   }
 
-  function drawTowns(map, towns) {
+  function drawTowns(map, towns, showLabels, grp) {
     towns.forEach(function (f) {
       var c = f.geometry.coordinates, p = f.properties, ll = [c[1], c[0]];
       var foreign = p.country && p.country !== "DRC";
@@ -157,7 +164,7 @@
       var dot = L.circleMarker(ll, {
         pane: "corridor-nodes", className: "town-dot", radius: 4.5, weight: 1.5,
         color: "#ffffff", fillColor: "#231f20", fillOpacity: 1
-      }).addTo(map);
+      }).addTo(grp);
       dot.bindTooltip(
         "<div class='town-hover-tip'><strong>" + esc(p.name) + "</strong>" + (p.country ? " (" + esc(p.country) + ")" : "") +
         (p.notes ? "<div class='town-notes'>" + esc(p.notes) + "</div>" : "") + "</div>",
@@ -165,11 +172,12 @@
       dot.on("mouseover", function () { dot.setStyle({ radius: 7, fillColor: "#c8102e" }); });      // no bringToFront(): it can drop the mouseout and strand the tooltip
       dot.on("mouseout", function () { dot.setStyle({ radius: 4.5, fillColor: "#231f20" }); });
       // permanent label: separate, non-interactive marker so it never steals the hover
-      L.marker(ll, {
+      // (skipped on pages that use data-overlays="townpoints": dots only, name shown on hover)
+      if (showLabels) L.marker(ll, {
         pane: "corridor-nodes", interactive: false, keyboard: false,
         icon: L.divIcon({ className: "town-label-marker" + (foreign ? " foreign" : ""),
                           html: "<span>" + esc(p.name) + "</span>", iconSize: [0, 0] })
-      }).addTo(map);
+      }).addTo(grp);
     });
   }
 
@@ -190,10 +198,11 @@
     var by = function (k) { return fc.features.filter(function (f) { return f.properties.layer === k; }); };
     var routes = by("route"), towns = by("town"), crossings = by("crossing");
     pane(map, "corridor-nodes", 575);
-    if (want.corridors) { drawRoutes(map, routes); drawCrossings(map, crossings); }
-    if (want.towns) drawTowns(map, towns);
+    var grp = L.layerGroup().addTo(map);    // routes + crossings + town points: one switch (button in the corridor legend)
+    if (want.corridors) { drawRoutes(map, routes, grp); drawCrossings(map, crossings, grp); }
+    if (want.towns || want.townpoints) drawTowns(map, towns, !!want.towns, grp);
     if (want.epicentre) drawEpicentre(map, towns);
-    if (want.corridors) routeLegend(routes, want.epicentre);
+    if (want.corridors) routeLegend(routes, want.epicentre, map, grp);
     else if (want.epicentre) mapLegendRow();
   }
 
