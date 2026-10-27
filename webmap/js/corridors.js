@@ -219,7 +219,7 @@
         outlineLayer(map, r[0]);
         L.geoJSON(r[1], { pane: "south-sudan",
           filter: function (f) { return SS_COUNTIES.indexOf(f.properties.county) >= 0; },
-          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },   // same look as DRC zones without cases
+          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#fadadd", fillOpacity: 1 },   // light baby pink = included counties
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.county) + " (" + esc(f.properties.state) + ")", { sticky: true });
             layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); });
@@ -237,9 +237,9 @@
                         getJSON("data/geo/uganda_border.geojson")])
       .then(function (r) {
         L.geoJSON(r[0], { pane: "uganda", interactive: false,
-          style: { color: "#bdbdbd", weight: 0.8, opacity: 1, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);   // same grey as South Sudan / DRC provinces without zones
+          style: { stroke: false, fillColor: "#d6d6d6", fillOpacity: 1 } }).addTo(map);   // same grey as South Sudan / DRC provinces without zones; no district lines
         L.geoJSON(r[1], { pane: "uganda",
-          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#e1e1e1", fillOpacity: 1 },
+          style: { color: "#54585a", weight: 1.2, opacity: 0.85, fillColor: "#fadadd", fillOpacity: 1 },   // light baby pink = response districts
           onEachFeature: function (f, layer) {
             layer.bindTooltip(esc(f.properties.district) + " (" + esc(f.properties.region) + ")", { sticky: true });
             layer.on("mouseover", function () { layer.setStyle({ color: "#231f20", opacity: 0.98, weight: 2 }); });
