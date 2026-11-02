@@ -158,7 +158,7 @@
 
   // ---- overlays -----------------------------------------------------------
   function drawRoutes(map, routes, grp) {
-    pane(map, "corridors", 565);
+    pane(map, "corridors", 610);        // above every other layer incl. zone labels (600)
     routes.forEach(function (f) {
       var p = f.properties, color = p.color_hex || "#231f20", cross = p.kind === "cross_border";
       var base = L.geoJSON(f, {
@@ -229,7 +229,7 @@
   }
 
   function drawEpicentre(map, towns) {
-    pane(map, "epicentre", 585);
+    pane(map, "epicentre", 630);
     EPICENTRE_TOWNS.forEach(function (name) {
       var f = towns.filter(function (t) { return t.properties.name === name; })[0];
       if (!f) return;
@@ -244,7 +244,7 @@
   function draw(map, fc, want) {
     var by = function (k) { return fc.features.filter(function (f) { return f.properties.layer === k; }); };
     var routes = by("route"), towns = by("town"), crossings = by("crossing");
-    pane(map, "corridor-nodes", 575);
+    pane(map, "corridor-nodes", 620);
     var grp = L.layerGroup().addTo(map);    // routes + crossings + town points: one switch (button in the corridor legend)
     if (want.corridors) { drawRoutes(map, routes, grp); drawCrossings(map, crossings, grp); }
     if (want.towns || want.townpoints) drawTowns(map, towns, !!want.towns, grp);
@@ -265,7 +265,7 @@
   }
   // South Sudan counties (admin 2) outlined on the map; the rest of the country is plain grey.
   var SS_COUNTIES = ["Tambura", "Ezo", "Nzara", "Yambio", "Ibba", "Maridi", "Juba", "Yei", "Morobo", "Kajo-keji",
-    "Magwi", "Torit", "Ikotos", "Budi", "Kapoeta East", "Kapoeta South"];
+    "Magwi", "Torit", "Ikotos", "Budi", "Kapoeta East", "Kapoeta South", "Mundri West", "Lainya"];
   function drawSouthSudan(map) {
     map.createPane("south-sudan"); map.getPane("south-sudan").style.zIndex = 380;   // above tiles, below zones
     return Promise.all([getJSON("data/geo/south_sudan.geojson"), getJSON("data/geo/south_sudan_counties.geojson")])
