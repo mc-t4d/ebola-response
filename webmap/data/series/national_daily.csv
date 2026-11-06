@@ -173,3 +173,4 @@ date,day,source,sitrep_no,national_cases,national_deaths,national_recovered,zone
 2026-11-01,171,INRB,,10532,5126,2834,67,10532,0,0,False,,
 2026-11-02,172,INRB,,,,,67,10532,,,True,2026-11-01,not in INRB; PROVISIONAL: zone values carried forward from 2026-11-01
 2026-11-03,173,INRB,,10668,5198,2881,67,10668,0,0,False,,
+2026-11-04,174,INRB,,10741,5230,2888,67,10741,0,0,False,,
